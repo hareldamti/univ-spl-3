@@ -34,7 +34,6 @@ public class RCIClient implements Closeable {
                 return msg;
             }
         }
-
         throw new IOException("disconnected before complete reading message");
     }
 
