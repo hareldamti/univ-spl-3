@@ -8,24 +8,24 @@ import java.util.concurrent.Flow.Subscriber;
 
 import bgu.spl.net.srv.Connections;
 
-public class commandRouter{
+public class CommandRouter{
     Frame commandFrame;
-    Connections connections;
-    HashMap<Consts.Command, Callable<Frame>> commandDictionary = new HashMap<Consts.Command, Callable<Frame>>(){{
-        put(Consts.Command.CONNECT, Connect);
-        put(Consts.Command.DISCONNECT, Disconnect);
-        put(Consts.Command.SUBSCRIBE, Subscribe);
-        put(Consts.Command.UNSUBSCRIBE, Unsubscribe);
-        put(Consts.Command.SEND, Send);
+    ConnectionsImpl connections;
+    HashMap<Frame.Command, Callable<Frame>> commandDictionary = new HashMap<Frame.Command, Callable<Frame>>(){{
+        put(Frame.Command.CONNECT, Connect);
+        put(Frame.Command.DISCONNECT, Disconnect);
+        put(Frame.Command.SUBSCRIBE, Subscribe);
+        put(Frame.Command.UNSUBSCRIBE, Unsubscribe);
+        put(Frame.Command.SEND, Send);
     }};
 
 
-    public commandRouter(Frame commandFrame, Connections connections) {
+    public CommandRouter(Frame commandFrame, Connections<String> connections) {
         this.commandFrame = commandFrame;
-        this.connections = connections;
+        this.connections = (ConnectionsImpl)connections;
     }
-    public Callable<Frame> getCommand(Frame request) {
-        return commandDictionary.get(request.command);
+    public Callable<Frame> getCommand() {
+        return commandDictionary.get(commandFrame.command);
     }
 
     static Callable<Frame> Connect = () -> {

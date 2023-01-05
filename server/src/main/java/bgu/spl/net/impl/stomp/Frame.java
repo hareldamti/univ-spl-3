@@ -4,43 +4,38 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Frame {
-    public String raw_frame;
     public Command command;
-    public Map<Header, String> headers;
+    public Map<HeaderKey, String> headers;
     public String body;
 
     public boolean isCorrupted;
 
-
-    public Frame(String raw_frame){
-        isCorrupted = false;
-        headers = new HashMap<Header, String>();
-        this.raw_frame = raw_frame;
-        parseFrame(raw_frame);
-    }
-
-    public Frame(Command command, Map<Header, String> headers, String body){
+    public Frame(Command command, Map<HeaderKey, String> headers, String body){
         this.command = command;
         this.headers = headers;
         this.body = body;
     }
 
     /**
-     * Injects the data from raw_frame to this.
-     * In case of a severely corrupted message, raises a corrupted flag
-     * @param raw_frame
+     * Injects the data from raw_frame to a new Frame object.
+     * In case of a severely corrupted message, returns an ERROR Frame.
+     * 
+     * @param raw_frame: string representation of the received frame
      */
-    private void parseFrame(String raw_frame){
+    public static Frame parseFrame(String rawFrame){
+        Frame result = new Frame(null, new HashMap<HeaderKey, String>(), "");
+        result.isCorrupted = false;
         String errorSummary = "", errorMessage = "";
-        String[] lines = raw_frame.split("\n");
+        String[] lines = rawFrame.split("\n");
 
-        if (lines.length == 0)
-            isCorrupted = true;
+        if (lines.length == 0) {
+            result.isCorrupted = true;
+            errorSummary = "Empty message";
+        }
 
-
-        try {command = Command.valueOf(lines[0]); }
+        try {result.command = Command.valueOf(lines[0]); }
         catch (IllegalArgumentException notInEnum) {
-            isCorrupted = true;
+            result.isCorrupted = true;
             errorSummary = "Illegal command";
             errorMessage = "Notice to use capitals and either\n"+
             "Un\\Subscribe, Dis\\Connect, Send";
@@ -51,46 +46,45 @@ public class Frame {
             String currentLine = lines[lineIdx];
             String[] keyValuePair = currentLine.split(":");
             if (keyValuePair.length != 2) 
-                isCorrupted = true;
+                result.isCorrupted = true;
             else {
                 try {
-                    headers.put(
+                    result.headers.put(
                         parseHeader(keyValuePair[0]),
                         keyValuePair[1].replace(" ","")
                         );
                 } catch (IllegalArgumentException notInEnum) {
-                    isCorrupted = true;
+                    result.isCorrupted = true;
                     errorSummary = "Illegal header";
                     errorMessage = "Notice to use a key value pair,\n"+
                     "seperated by :, and a relevant key (found in manual)";
                 }
-
             }
             lineIdx++;
         }
         
-        body = "";
         while (lineIdx < lines.length) {
-            body += lines[lineIdx] + (lineIdx == lines.length - 1 ? "" : "\n");
+            result.body += lines[lineIdx] + (lineIdx == lines.length - 1 ? "" : "\n");
         }
 
-        if (isCorrupted) this = createErrorFrame(this, errorSummary, errorMessage);
+        if (result.isCorrupted)
+            return createErrorFrame(result, errorSummary, errorMessage);
+        return result;
     }
 
-    private String toStringRepr() {
+    public String toStringRepr() {
         String raw_frame = command + "\n";
-        for (Header key : headers.keySet()) {raw_frame += String.format("%s:%s\n",headerName(key), headers.get(key));}
+        for (HeaderKey key : headers.keySet()) {raw_frame += String.format("%s:%s\n",headerName(key), headers.get(key));}
         raw_frame += "\n" + body + "\u0000";
         return raw_frame;
     }
 
     public static Frame createErrorFrame(Frame frame, String errorSummary, String errorMessage) {
-        Map<Header, String> headers = new HashMap<Header, String>();
-        headers.put(Header.message, errorSummary);
-        if (frame.headers.containsKey(Header.receipt_id))
-            headers.put(Header.receipt, frame.headers.get(Header.receipt_id));
-        
-        String body = "The message\n-----\n" + frame.raw_frame + "\n-----\n" + errorMessage;
+        Map<HeaderKey, String> headers = new HashMap<HeaderKey, String>();
+        headers.put(HeaderKey.message, errorSummary);
+        if (frame.headers.containsKey(HeaderKey.receipt_id))
+            headers.put(HeaderKey.receipt, frame.headers.get(HeaderKey.receipt_id));
+        String body = "The message\n-----\n" + frame.toStringRepr() + "\n-----\n" + errorMessage;
         return new Frame(Command.ERROR, headers, body);
     }
 
@@ -107,7 +101,7 @@ public class Frame {
         SEND
     }
 
-    public enum Header {
+    public enum HeaderKey {
         receipt_id,
         subscription,
         message_id,
@@ -122,11 +116,11 @@ public class Frame {
         receipt
     }
 
-    public static String headerName(Header h) {
+    public static String headerName(HeaderKey h) {
         return h.name().replace("_", "-");
     }
 
-    public static Header parseHeader(String s) {
-        return Header.valueOf(s.replace("-", "_"));
+    public static HeaderKey parseHeader(String s) {
+        return HeaderKey.valueOf(s.replace("-", "_"));
     }
 }

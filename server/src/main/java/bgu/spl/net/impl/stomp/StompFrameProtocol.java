@@ -13,8 +13,9 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
 
     //TODO: type??
 
-    Connections connections;
-    public StompFrameProtocol(Connections connections) {
+    Connections<String> connections;
+
+    public StompFrameProtocol(Connections<String> connections) {
         this.connections = connections;
     }
 
@@ -26,12 +27,20 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
     
     @Override
     public void process(String message) {
-        //TODO: implement
-        Frame request = new Frame(message);
+        //TODO: channel?
+        Frame request = Frame.parseFrame(message);
         if (request.isCorrupted) {
-            //TODO
+            
+            connections.send(null, request.toStringRepr());
         }
-        Frame response = handleCommand(request);
+
+        CommandRouter router = new CommandRouter(request, connections);
+        Frame response;
+        try { response = router.getCommand().call(); }
+        catch (Exception e) {}
+        
+        // A receipt message
+        connections.send(null, request.toStringRepr());
     }
 	
 	/**
@@ -42,28 +51,9 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
         return false;
         //TODO: implement
     }
-    
-    public Frame isLegal(Frame request) {
-        if (request.isCorrupted) return createErrorFrame(request, "Unreadable headers", "");
-        //TODO: implement
-    }
-
 
     public Frame handleCommand(Frame request) {
-        switch(request.command) {
-            case "CONNECT": {
-
-            }
-            case "SUBSCRIBE": {
-                
-            }
-            case "SUBSCRIBE": {
-                
-            }
-            case "SUBSCRIBE":
-        }
-
-        return null;
+        response =
     }
 
     
