@@ -11,8 +11,11 @@ import bgu.spl.net.srv.Connections;
 
 public class StompFrameProtocol implements StompMessagingProtocol<String> {
 
-    public StompFrameProtocol() {
-        //TODO: implement
+    //TODO: type??
+
+    Connections connections;
+    public StompFrameProtocol(Connections connections) {
+        this.connections = connections;
     }
 
     @Override
@@ -25,9 +28,9 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
     public void process(String message) {
         //TODO: implement
         Frame request = new Frame(message);
-        Frame error = isLegal(request);
-        //TODO: handle error
-
+        if (request.isCorrupted) {
+            //TODO
+        }
         Frame response = handleCommand(request);
     }
 	
@@ -63,13 +66,7 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
         return null;
     }
 
-    public Frame createErrorFrame(Frame frame, String errorSummary, String errorMessage) {
-        Map<String, String> headers = new HashMap<String,String>();
-        headers.put("message", errorSummary);
-        if (frame.headers.containsKey("reciept-id")) headers.put("reciept-id", frame.headers.get("reciept-id"));
-        String body = "The message\n-----\n" + frame.raw_frame + "\n-----\n"+errorMessage;
-        return new Frame(Frame.Command.ERROR.name(), headers, body);
-    }
+    
 
 
 

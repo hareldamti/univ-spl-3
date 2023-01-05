@@ -23,8 +23,5 @@ public class StompServer {
                 () ->  new StompFrameProtocol(connections), //protocol factory
                 FrameMessageEncoderDecoder::new //message encoder decoder factory
         ).serve();
-
-
-
     }
 }
