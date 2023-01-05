@@ -11,12 +11,13 @@ import java.io.Closeable;
  * The ConnectionHandler interface for Message of type T
  */
 public interface ConnectionHandler<T> extends Closeable {
-
     /**
      * Comment the following lines (both send methods) for the existing implentations to work.
      *
      */
 
-    void send(T msg);
+    boolean send(T msg);
+
+    int getConnectionId();
 
 }

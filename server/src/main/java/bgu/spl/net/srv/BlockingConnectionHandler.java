@@ -10,6 +10,7 @@ import java.net.Socket;
 
 public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler<T> {
 
+    public int connectionId;
     private final StompMessagingProtocol<T> protocol;
     private final MessageEncoderDecoder<T> encdec;
     private final Socket sock;
@@ -17,10 +18,11 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
     private BufferedOutputStream out;
     private volatile boolean connected = true;
 
-    public BlockingConnectionHandler(Socket sock, MessageEncoderDecoder<T> reader, StompMessagingProtocol<T> protocol) {
+    public BlockingConnectionHandler(Socket sock, MessageEncoderDecoder<T> reader, StompMessagingProtocol<T> protocol, int id) {
         this.sock = sock;
         this.encdec = reader;
         this.protocol = protocol;
+        this.connectionId = id;
     }
 
     @Override
@@ -51,7 +53,21 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
     }
 
     @Override
-    public void send(T msg) {
-        //IMPLEMENT IF NEEDED
+    public boolean send(T msg) {
+        boolean sent = true;
+        try{
+            out.write(encdec.encode(msg));
+            out.flush();
+        }
+        catch(IOException e){
+            sent = false;
+        }
+        return sent;
+    }
+
+    @Override
+    public int getConnectionId() {
+        // TODO Auto-generated method stub
+        return connectionId;
     }
 }

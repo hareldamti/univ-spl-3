@@ -13,16 +13,18 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
 
     //TODO: type??
 
+    int connectionId;
     Connections<String> connections;
-
     public StompFrameProtocol(Connections<String> connections) {
         this.connections = connections;
+        //TODO: implement
     }
 
     @Override
     public void start(int connectionId, Connections<String> connections) {
         // TODO Auto-generated method stub
-        
+        this.connectionId = connectionId;
+        this.connections = connections;
     }
     
     @Override
