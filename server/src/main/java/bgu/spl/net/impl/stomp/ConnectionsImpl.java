@@ -1,68 +1,102 @@
 package bgu.spl.net.impl.stomp;
 
-import java.sql.Connection;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
-
+import java.util.AbstractMap.SimpleEntry;
 import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
-public class ConnectionsImpl<T> implements Connections<T>{
-    
-    // Data structures: Users, Subscriptions, Connections-users, connectionId counter
-    // Maps:
-    //  users-passwords
-    //  users-[subscription_id] 
-    //  [subscription_id]-destinations
-    //  user-connection_id
-    //  connection_id-client
+public class ConnectionsImpl implements Connections<String>{
+    /**
+     * username: password dictionary
+     */
+    public ConcurrentHashMap<String, String> userPassword;
 
-    public ConcurrentHashMap<String,String> users;
-    public ConcurrentHashMap<String,ArrayList<Integer>> channels_connectionIds;
-    public ConcurrentHashMap<Integer ,ConnectionHandler<T>> connectionHandlers;
-    public ConcurrentHashMap<Integer,String> connenctions_users;
+    /**
+     * channel: [(username, subscriptionId)] dictionary
+     */
+    public ConcurrentHashMap<String,ArrayList<SimpleEntry<String, Integer>>>
+        channelSubscriptions;
 
-    public ConnectionsImpl(){
-        users = new ConcurrentHashMap<>();
-        channels_connectionIds = new ConcurrentHashMap<>();
-        connenctions_users = new ConcurrentHashMap<>();
-        connectionHandlers = new ConcurrentHashMap<>();
+    /**
+     * connectionId: connectionHandler dictionary
+     */
+    public ConcurrentHashMap<Integer, ConnectionHandler<String>> connIdHandler;
 
+    /**
+     * username: connectionId dictionary
+     */
+    public ConcurrentHashMap<String,Integer> userConnId;
+
+    private int idCounter;
+
+    public ConnectionsImpl() {
+        userPassword = new ConcurrentHashMap<>();
+        channelSubscriptions = new ConcurrentHashMap<>();
+        connIdHandler = new ConcurrentHashMap<>();
+        userConnId = new ConcurrentHashMap<>();
     }
     
-
+    /**
+     * Finds the connectionHandler and sends a message through it
+     * @param connectionId: client's unique connectionId
+     * @param msg: message to be sent
+     * @return: true iff the connectionHandler returned a succesful send
+     */
     @Override
-    public boolean send(int connectionId, T msg) {
-        
-        //uses the connectionhandler send function to send msg to a client
-
-        if(connectionHandlers.get(connectionId).send(msg)) return true;
+    public boolean send(int connectionId, String msg) {
+        try {
+            if (connIdHandler.get(connectionId).send(msg)) return true;
+        }
+        catch (NullPointerException e) {
+            Utils.log("Connection id "+connectionId+" isn't assigned to a handler",
+            Utils.LogLevel.ERROR);
+        }
         return false;
     }
 
+    /**
+     * Finds the subscribed users' connectionHandlers and sends a message to all of them
+     * @param channel: specific channel subscription
+     * @param msg: message to be sent
+    */
     @Override
-    public void send(String channel, T msg) {
-        
-        //sends a msg to all subscribed clients of a channel
-
-        if(channels_connectionIds.keySet().contains(channel)){
-            for(ConnectionHandler<T> client: n.get(channels_connectionIds.get(channel))){
-                send(client.getConnectionId(), msg);
-            }
+    public void send(String channel, String msg) {
+        ArrayList<SimpleEntry<String, Integer>> subscriptions = channelSubscriptions.get(channel);
+        if (subscriptions == null) {
+            Utils.log("channel "+channel+" was not registered but a message was sent to it",
+            Utils.LogLevel.ERROR);
+            return;
         }
-        
-        
+        if (subscriptions.size() == 0) {
+            Utils.log("channel "+channel+" has 0 subs but a message was sent to it",
+            Utils.LogLevel.WARNING);
+            return;
+        }
+        Frame msgFrame = Frame.parseFrame(msg);
+        for (SimpleEntry<String, Integer> sub : subscriptions) {
+            String username = sub.getKey();
+            Integer subscriptionId = sub.getValue();
+            msgFrame.headers.put(Frame.HeaderKey.subscription, subscriptionId.toString());
+            Integer connectionId = userConnId.get(username);
+            if (connectionId == null) {
+                Utils.log("user "+username+" is subscribed to "+channel+" but isn\'t logged in",
+                Utils.LogLevel.INFO);
+            }
+            else send(connectionId, msgFrame.toStringRepr());
+        }  
     }
 
     @Override
     public void disconnect(int connectionId) {
         //TODO Unsubscribe the client from the channels
+    }
 
-        
-        connenctions_users.remove(connectionId);
-        connectionHandlers.remove(connectionId);
-        
+
+    @Override
+    public int generateUniqueId(ConnectionHandler<String> conn) {
+        connIdHandler.put(idCounter, conn);
+        return idCounter++;
     }
     
 }

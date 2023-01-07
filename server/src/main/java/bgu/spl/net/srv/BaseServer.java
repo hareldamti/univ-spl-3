@@ -14,18 +14,14 @@ public abstract class BaseServer<T> implements Server<T> {
     private final Supplier<StompMessagingProtocol<T>> protocolFactory;
     private final Supplier<MessageEncoderDecoder<T>> encdecFactory;
     private ServerSocket sock;
-    private int idCounter;
-
     public BaseServer(
             int port,
             Supplier<StompMessagingProtocol<T>> protocolFactory,
             Supplier<MessageEncoderDecoder<T>> encdecFactory) {
-
         this.port = port;
         this.protocolFactory = protocolFactory;
         this.encdecFactory = encdecFactory;
 		this.sock = null;
-        idCounter = 0;
     }
 
     @Override
@@ -39,13 +35,10 @@ public abstract class BaseServer<T> implements Server<T> {
             while (!Thread.currentThread().isInterrupted()) {
 
                 Socket clientSock = serverSock.accept();
-                int id = generateUniqueId();
                 BlockingConnectionHandler<T> handler = new BlockingConnectionHandler<>(
                         clientSock,
                         encdecFactory.get(),
-                        protocolFactory.get(),
-                        id);
-
+                        protocolFactory.get());
                 execute(handler);
             }
         } catch (IOException ex) {
@@ -54,9 +47,6 @@ public abstract class BaseServer<T> implements Server<T> {
         System.out.println("server closed!!!");
     }
 
-    private int generateUniqueId() {
-        return idCounter++;
-    }
 
     @Override
     public void close() throws IOException {

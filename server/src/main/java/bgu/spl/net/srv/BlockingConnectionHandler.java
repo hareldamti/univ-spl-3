@@ -10,7 +10,6 @@ import java.net.Socket;
 
 public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler<T> {
 
-    public int connectionId;
     private final StompMessagingProtocol<T> protocol;
     private final MessageEncoderDecoder<T> encdec;
     private final Socket sock;
@@ -18,21 +17,20 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
     private BufferedOutputStream out;
     private volatile boolean connected = true;
 
-    public BlockingConnectionHandler(Socket sock, MessageEncoderDecoder<T> reader, StompMessagingProtocol<T> protocol, int id) {
+    public BlockingConnectionHandler(Socket sock, MessageEncoderDecoder<T> reader, StompMessagingProtocol<T> protocol) {
         this.sock = sock;
         this.encdec = reader;
         this.protocol = protocol;
-        this.connectionId = id;
+        protocol.start(this);
     }
 
     @Override
     public void run() {
         try (Socket sock = this.sock) { //just for automatic closing
             int read;
-
             in = new BufferedInputStream(sock.getInputStream());
             out = new BufferedOutputStream(sock.getOutputStream());
-
+            
             while (!protocol.shouldTerminate() && connected && (read = in.read()) >= 0) {
                 T nextMessage = encdec.decodeNextByte((byte) read);
                 if (nextMessage != null) {
@@ -63,11 +61,5 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
             sent = false;
         }
         return sent;
-    }
-
-    @Override
-    public int getConnectionId() {
-        // TODO Auto-generated method stub
-        return connectionId;
     }
 }

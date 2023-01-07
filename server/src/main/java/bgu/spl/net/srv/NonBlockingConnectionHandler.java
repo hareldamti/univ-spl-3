@@ -16,25 +16,24 @@ public class NonBlockingConnectionHandler<T> implements ConnectionHandler<T> {
     private static final int BUFFER_ALLOCATION_SIZE = 1 << 13; //8k
     private static final ConcurrentLinkedQueue<ByteBuffer> BUFFER_POOL = new ConcurrentLinkedQueue<>();
 
-    private int connectionId;
     private final StompMessagingProtocol<T> protocol;
     private final MessageEncoderDecoder<T> encdec;
     private final Queue<ByteBuffer> writeQueue = new ConcurrentLinkedQueue<>();
     private final SocketChannel chan;
     private final Reactor reactor;
+    private Connections connections;
 
     public NonBlockingConnectionHandler(
             MessageEncoderDecoder<T> reader,
             StompMessagingProtocol<T> protocol,
             SocketChannel chan,
-            int id,
-            Reactor reactor) {
+            Reactor reactor
+            ) {
         this.chan = chan;
         this.encdec = reader;
         this.protocol = protocol;
-        this.connectionId = id;
         this.reactor = reactor;
-        
+        protocol.start(this);
     }
 
     public Runnable continueRead() {
@@ -128,9 +127,4 @@ public class NonBlockingConnectionHandler<T> implements ConnectionHandler<T> {
         return true; //should check if send need be boolean
     }
 
-    @Override
-    public int getConnectionId() {
-        // TODO Auto-generated method stub
-        return connectionId;
-    }
 }
