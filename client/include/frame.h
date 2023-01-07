@@ -12,13 +12,14 @@ class Frame
     public:
         string command_;
         map<string, string> headers_;
-        string event_;
+        string body_;
         
-        Frame(string command, map<string, string> headers, string event);
+        Frame(string command, map<string, string> headers, string body);
         Frame(string command);
         ~Frame();
 
         void addHeader(string key, string value);
+        string toStringRepr();
 };
 
 string parseInput(string input);

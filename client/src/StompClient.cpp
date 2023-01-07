@@ -24,9 +24,8 @@ int main(int argc, char *argv[]) {
     }
 	std::cout << "Connected to the server" << std::endl;
 	ClientIO *clio = new ClientIO();
-	std::thread thread_object(ClientIO::registerInputs)
-	
-
-
+	std::thread thread_object(ClientIO::registerInputs, clio, connectionHandler);
+    clio->displayMessages(connectionHandler);
+    connectionHandler.close();
 	return 0;
 }
