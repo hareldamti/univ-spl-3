@@ -10,5 +10,8 @@ public interface Connections<T> {
 
     void disconnect(int connectionId);
 
-    int generateUniqueId(ConnectionHandler<T> conn);
+    void kill(int connectionId);
+    
+    int generateUniqueConnectionId(ConnectionHandler<T> conn);
+
 }

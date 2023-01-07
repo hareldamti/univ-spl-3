@@ -8,8 +8,13 @@ public class Frame {
     public Map<HeaderKey, String> headers;
     public String body;
 
-    public boolean isCorrupted;
+    public boolean terminate;
 
+    public Frame(Command command){
+        this.command = command;
+        this.headers = new HashMap<HeaderKey, String>();
+        this.body = "";
+    }
     public Frame(Command command, Map<HeaderKey, String> headers, String body){
         this.command = command;
         this.headers = headers;
@@ -24,18 +29,18 @@ public class Frame {
      */
     public static Frame parseFrame(String rawFrame){
         Frame result = new Frame(null, new HashMap<HeaderKey, String>(), "");
-        result.isCorrupted = false;
+        result.terminate = false;
         String errorSummary = "", errorMessage = "";
         String[] lines = rawFrame.split("\n");
 
         if (lines.length == 0) {
-            result.isCorrupted = true;
+            result.terminate = true;
             errorSummary = "Empty message";
         }
 
         try {result.command = Command.valueOf(lines[0]); }
         catch (IllegalArgumentException notInEnum) {
-            result.isCorrupted = true;
+            result.terminate = true;
             errorSummary = "Illegal command";
             errorMessage = "Notice to use capitals and either\n"+
             "Un\\Subscribe, Dis\\Connect, Send";
@@ -46,7 +51,7 @@ public class Frame {
             String currentLine = lines[lineIdx];
             String[] keyValuePair = currentLine.split(":");
             if (keyValuePair.length != 2) 
-                result.isCorrupted = true;
+                result.terminate = true;
             else {
                 try {
                     result.headers.put(
@@ -54,7 +59,7 @@ public class Frame {
                         keyValuePair[1].replace(" ","")
                         );
                 } catch (IllegalArgumentException notInEnum) {
-                    result.isCorrupted = true;
+                    result.terminate = true;
                     errorSummary = "Illegal header";
                     errorMessage = "Notice to use a key value pair,\n"+
                     "seperated by :, and a relevant key (found in manual)";
@@ -67,7 +72,7 @@ public class Frame {
             result.body += lines[lineIdx] + (lineIdx == lines.length - 1 ? "" : "\n");
         }
 
-        if (result.isCorrupted)
+        if (result.terminate)
             return createErrorFrame(result, errorSummary, errorMessage);
         return result;
     }
@@ -85,7 +90,9 @@ public class Frame {
         if (frame.headers.containsKey(HeaderKey.receipt_id))
             headers.put(HeaderKey.receipt, frame.headers.get(HeaderKey.receipt_id));
         String body = "The message\n-----\n" + frame.toStringRepr() + "\n-----\n" + errorMessage;
-        return new Frame(Command.ERROR, headers, body);
+        Frame response = new Frame(Command.ERROR, headers, body);
+        response.terminate = true;
+        return response;
     }
 
     /// Enums:
@@ -98,7 +105,8 @@ public class Frame {
         SUBSCRIBE,
         UNSUBSCRIBE,
         RECIEPT,
-        SEND
+        SEND,
+        MESSAGE
     }
 
     public enum HeaderKey {
@@ -112,7 +120,7 @@ public class Frame {
         login,
         host,
         message,
-        password,
+        passcode,
         receipt
     }
 
