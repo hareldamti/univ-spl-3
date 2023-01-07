@@ -1,16 +1,12 @@
 package bgu.spl.net.impl.stomp;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import bgu.spl.net.srv.Connections;
 import bgu.spl.net.srv.Server;
 
 public class StompServer {
 
     public static void main(String[] args) {   
-        Map<String, String> users = new HashMap<String, String>();
-        Connections<String> connections = new ConnectionsImpl<String>();
+        Connections<String> connections = new ConnectionsImpl();
         Server.threadPerClient(
                 7777, //port
                 () -> new StompFrameProtocol(connections), //protocol factory

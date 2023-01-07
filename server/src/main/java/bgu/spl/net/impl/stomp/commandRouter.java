@@ -1,14 +1,10 @@
 package bgu.spl.net.impl.stomp;
-import java.util.Dictionary;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Flow.Subscriber;
 
 import bgu.spl.net.srv.Connections;
 
-public class CommandRouter{
+public class CommandRouter {
     Frame commandFrame;
     ConnectionsImpl connections;
     HashMap<Frame.Command, Callable<Frame>> commandDictionary = new HashMap<Frame.Command, Callable<Frame>>(){{
@@ -29,18 +25,18 @@ public class CommandRouter{
     }
 
     static Callable<Frame> Connect = () -> {
-
+        throw new NoSuchFieldException();
     };
     static Callable<Frame> Disconnect = () -> {
-        
+        throw new NoSuchFieldException();
     };
     static Callable<Frame> Subscribe = () -> {
-        
+        throw new NoSuchFieldException();
     };
     static Callable<Frame> Unsubscribe = () -> {
-        
+        throw new NoSuchFieldException();
     };
     static Callable<Frame> Send = () -> {
-        
+        throw new NoSuchFieldException();
     };
 }
