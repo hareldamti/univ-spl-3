@@ -1,5 +1,8 @@
 package bgu.spl.net.impl.stomp;
 
+import java.util.Map;
+import java.util.Map.Entry;
+
 public class Utils {
     public enum LogLevel {
         INFO,
@@ -8,7 +11,7 @@ public class Utils {
         ERROR,
         OFF
     }
-    public static final String DEFAULT_HOST = "bgu.spl.ac.il";
+    public static final String DEFAULT_HOST = "stomp.cs.bgu.ac.il";
     public static final LogLevel loggingLevel = LogLevel.INFO;
     
     
@@ -35,5 +38,12 @@ public class Utils {
                 LogLevel.ERROR.name());
             e.printStackTrace();
         }
+    }
+
+    public static <K,V> K getKeyByValue(Map<K,V> map, V value) {
+        for (Entry<K, V> pair : map.entrySet()) 
+            if (pair.getValue().equals(value))
+                return pair.getKey();
+        return null;
     }
 }

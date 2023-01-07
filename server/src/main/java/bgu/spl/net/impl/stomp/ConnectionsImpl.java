@@ -1,6 +1,7 @@
 package bgu.spl.net.impl.stomp;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.AbstractMap.SimpleEntry;
 import bgu.spl.net.srv.ConnectionHandler;
@@ -15,7 +16,7 @@ public class ConnectionsImpl implements Connections<String>{
     /**
      * channel: [(username, subscriptionId)] dictionary
      */
-    public ConcurrentHashMap<String,ArrayList<SimpleEntry<String, Integer>>>
+    public ConcurrentHashMap<String,List<SimpleEntry<String, Integer>>>
         channelSubscriptions;
 
     /**
@@ -28,13 +29,15 @@ public class ConnectionsImpl implements Connections<String>{
      */
     public ConcurrentHashMap<String,Integer> userConnId;
 
-    private int idCounter;
+    private int connIdCounter, msgIdCounter;
 
     public ConnectionsImpl() {
         userPassword = new ConcurrentHashMap<>();
         channelSubscriptions = new ConcurrentHashMap<>();
         connIdHandler = new ConcurrentHashMap<>();
         userConnId = new ConcurrentHashMap<>();
+        connIdCounter = 0;
+        msgIdCounter = 0;
     }
     
     /**
@@ -62,7 +65,7 @@ public class ConnectionsImpl implements Connections<String>{
     */
     @Override
     public void send(String channel, String msg) {
-        ArrayList<SimpleEntry<String, Integer>> subscriptions = channelSubscriptions.get(channel);
+        List<SimpleEntry<String, Integer>> subscriptions = channelSubscriptions.get(channel);
         if (subscriptions == null) {
             Utils.log("channel "+channel+" was not registered but a message was sent to it",
             Utils.LogLevel.ERROR);
@@ -89,14 +92,37 @@ public class ConnectionsImpl implements Connections<String>{
 
     @Override
     public void disconnect(int connectionId) {
-        //TODO Unsubscribe the client from the channels
+
+        String username = Utils.getKeyByValue(userConnId, connectionId);
+
+        // remove user's subscriptions
+        for (String channel : channelSubscriptions.keySet()) {
+            List<SimpleEntry<String, Integer>> subs = channelSubscriptions.get(channel);
+            List<SimpleEntry<String, Integer>> userSubs = new ArrayList<SimpleEntry<String, Integer>>();
+            for (SimpleEntry<String, Integer> sub : subs) 
+                if (sub.getKey() == username) 
+                    userSubs.add(sub);
+            
+            for (SimpleEntry<String, Integer> userSub : userSubs)
+                subs.remove(userSub);
+        }
+
+        // remove user's current connection id
+        userConnId.remove(username);
     }
 
 
     @Override
-    public int generateUniqueId(ConnectionHandler<String> conn) {
-        connIdHandler.put(idCounter, conn);
-        return idCounter++;
+    public int generateUniqueConnectionId(ConnectionHandler<String> conn) {
+        connIdHandler.put(msgIdCounter, conn);
+        return connIdCounter++;
+    }
+
+    public int generateMessageId() { return msgIdCounter++; }
+
+    @Override
+    public void kill(int connectionId) {
+        connIdHandler.remove(connectionId);
     }
     
 }
