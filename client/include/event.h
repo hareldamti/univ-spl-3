@@ -47,4 +47,14 @@ struct names_and_events {
 };
 
 // function that parses the json file and returns a names_and_events object
-names_and_events parseEventsFile(std::string json_path);
+
+// Utils
+std::string readFile(std::string path);
+names_and_events parseEvents(std::string json);
+std::string toJsonString(names_and_events events);
+void writeFile(std::string json, std::string path);
+
+names_and_events parseEventsFile(std::string path);
+names_and_events parseEventsString(std::string json);
+names_and_events toJsonString(Event json);
+names_and_events saveFile(std::string json);
