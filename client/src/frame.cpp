@@ -29,7 +29,6 @@ string Frame::toStringRepr() {
 Frame parseFrame(string serverResponse){
     vector<string> splittedResponse;
     boost::split(splittedResponse, serverResponse, boost::is_any_of("\n"));
-
     int lineIdx = 0;
 
     //creates a frame with the command from the server response
@@ -46,7 +45,8 @@ Frame parseFrame(string serverResponse){
     lineIdx++;
     
     //if there is a message body, adds it to the frame
-    if(lineIdx < splittedResponse.size()) parsedFrame.body_ = splittedResponse.at(lineIdx);
+    for (; lineIdx < splittedResponse.size(); lineIdx++)
+        parsedFrame.body_ += splittedResponse.at(lineIdx) + "\n";
 
     return parsedFrame;
 }
