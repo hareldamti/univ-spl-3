@@ -7,18 +7,33 @@ public class StompServer {
 
     public static void main(String[] args) {   
         Connections<String> connections = new ConnectionsImpl();
-        Server.threadPerClient(
-                7777, //port
-                () -> new StompFrameProtocol(connections), //protocol factory
-                FrameMessageEncoderDecoder::new //message encoder decoder factory
-        ).serve();
+        int port;
+        boolean reactorMode;
+        try {
+            port = Integer.parseInt(args[0]);
+            if (args[1].toLowerCase() == "reactor") reactorMode = true;
+            else if (args[1].toLowerCase() == "tpc") reactorMode = false;
+            else throw new IllegalArgumentException("Illegal server mode");
+        }
+        catch (Exception ex) { System.out.println("Restart with arguments {port} {tpc/reactor}"); return; }
 
-        Server.reactor(
+        if (reactorMode) {
+            Server.reactor(
                 Runtime.getRuntime().availableProcessors(),
-                7777, //port
+                port,
                 () ->  new StompFrameProtocol(connections), //protocol factory
                 FrameMessageEncoderDecoder::new //message encoder decoder factory
-        ).serve();
+            ).serve();
+        }
+
+        else {
+            Server.threadPerClient(
+                    port,
+                    () -> new StompFrameProtocol(connections), //protocol factory
+                    FrameMessageEncoderDecoder::new //message encoder decoder factory
+            ).serve();
+        }
+        
 
 
 

@@ -43,13 +43,13 @@ class ClientIO {
             keywords.push_back(input.substr(idx, next));
             idx = ++next;
         }
-
         string& command = keywords.at(0);
 
         if (command == "login") {
             Frame request("CONNECT");
             if (keywords.size() != 4 || keywords.at(1).size() - keywords.at(1).find(':') != 4 || keywords.at(1).size() < 4) {
-                // log illegal input
+                cout << "Unsent - login format: login {host:port} {username} {password}" << endl;
+                return "";
             }
             request.addHeader("host", keywords.at(1));
             request.addHeader("login", keywords.at(2));
@@ -60,7 +60,8 @@ class ClientIO {
         if (command == "join") {
             Frame request("SUBSCRIBE");
             if (keywords.size() != 2) {
-                // log illegal input
+                cout << "Unsent - join format: join {game name} (game name = {team a}_{team_b})" << endl;
+                return "";
             }
             string destination = "/"+keywords.at(1);
             subscriptions[destination] = generateNewSubId();
@@ -73,20 +74,26 @@ class ClientIO {
         else if (command == "report") {
             Frame request("SEND");
             if (keywords.size() != 2) {
-                // log illegal input
+                cout << "Unsent - send format: send {path.json})" << endl;
                 return "";
             }
-            string message = readFile(keywords.at(1));
-            names_and_events name_and_events = parseEventsString(message);
+            
+            try { string message = readFile(keywords.at(1)); }
+            catch (...) {cout << "Unsent - can't open file (did you type a correct file name? is it open?)" << endl; return "";}
+            
+            try { names_and_events name_and_events = parseEventsString(message); }
+            catch (...) {cout << "Unsent - can't parse file (make sure the json is formatted correctly))" << endl; return "";}
+            
             string game_name = name_and_events.team_a_name + "_" + name_and_events.team_b_name;
             request.addHeader("destination", "/"+game_name);
             request.body_ = message;
             return request.toStringRepr();
         }
+
         else if (command == "exit") {
             Frame request("UNSUBSCRIBE");
             if (keywords.size() != 2) {
-                // log illegal input
+                cout << "Unsent - exit format: exit {game_name} (game name = {team a}_{team_b})" << endl;
                 return "";
             }
             string destination = "/"+keywords.at(1);
@@ -95,25 +102,27 @@ class ClientIO {
             request.addHeader("receipt-id", to_string(generateNewReceiptId()));
             return request.toStringRepr();
         }
+
         else if (command == "logout") {
             Frame request("DISCONNECT");
             if (keywords.size() != 1) {
-                // log illegal input
+                cout << "Unsent - logout format: logout" << endl;
                 return "";
             }
             terminateReceipt = generateNewReceiptId();
             request.addHeader("receipt-id", to_string(terminateReceipt));
             return request.toStringRepr();
         }
+        
         else if (command == "summary") {
-            Frame request("DISCONNECT");
-            if (keywords.size() != 1) {
-                // log illegal input
+            if (keywords.size() != 2) {
+                cout << "summary format: summary {path.json}" << endl;
                 return "";
             }
-            // TODO: when command = send - print and save a file or whatever
+            // TODO: save the summary to filename path
             return "";
         }
+        
         return "";
     }
 
@@ -132,7 +141,7 @@ class ClientIO {
             }
             else if (command == "RECEIPT") {
                 //should we log it for debug purposes?
-                if(stoi(response.headers_["reciept"]) == terminateReceipt) terminate = true;
+                if(stoi(response.headers_["reciept-id"]) == terminateReceipt) terminate = true;
             }
             else if (command == "MESSAGE") {
                 names_and_events name_and_events = parseEventsString(response.body_);
