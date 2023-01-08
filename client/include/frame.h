@@ -18,8 +18,10 @@ class Frame
         Frame(string command);
         ~Frame();
 
+        
         void addHeader(string key, string value);
         string toStringRepr();
+        Frame parseFrame(string serverResponse);
 };
 
 string parseInput(string input);

@@ -111,7 +111,7 @@ class ClientIO {
                 // log illegal input
                 return "";
             }
-            // TODO: print and save a file or whatever
+            // TODO: when command = send - print and save a file or whatever
             return "";
         }
         return "";
@@ -128,13 +128,15 @@ class ClientIO {
             Frame response = parseFrame(responseString); 
             string command = response.command_;
             if (command == "ERROR") {
-
+                terminate = true;
             }
             else if (command == "RECEIPT") {
-
+                //should we log it for debug perpuses?
+                if(stoi(response.headers_["reciept"]) == terminateReceipt) terminate = true;
             }
             else if (command == "MESSAGE") {
-
+                names_and_events name_and_events = parseEventsString(response.body_);
+                //save to a file and display
             }
             
             //handle serverResponse

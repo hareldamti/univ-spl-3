@@ -34,7 +34,19 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
 
         CommandRouter router = new CommandRouter(request, connections, connectionId);
         try {
-            Frame response = router.getCommand().call();
+            Frame response;
+
+            Frame.Command requestCommand = request.command;
+            switch(requestCommand){
+                case CONNECT: response = router.Connect();
+                case DISCONNECT: response = router.Disconnect();
+                case SUBSCRIBE: response = router.Subscribe();
+                case UNSUBSCRIBE: response = router.Unsubscribe();
+                case SEND: response = router.Send();
+                default: response=null;
+
+            }
+            
             
             if (response != null) {
                 if (response.terminate)
