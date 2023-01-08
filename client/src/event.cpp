@@ -67,12 +67,27 @@ Event::Event(const std::string &frame_body) : team_a_name(""), team_b_name(""), 
 
 std::string readFile(std::string path) {
     std::ifstream inFile;
-    inFile.open("inFileName"); //open the input file
+    inFile.open(path); //open the input file
 
     std::stringstream strStream;
     strStream << inFile.rdbuf(); //read the file
     inFile.close();
     return strStream.str(); //str holds the content of the file
+}
+
+void writeFile(std::string json, std::string path) {
+    std::ofstream outFile;
+    try {
+        outFile.open(path);
+        outFile << json;
+        outFile.close();
+    }
+    catch (...) { std::cout << "Error while trying to save file" << std::endl; }
+}
+
+std::string toJsonString(names_and_events events) {
+    std::string result;
+    // TODO: convert
 }
 
 names_and_events parseEventsString(std::string str) {
@@ -120,6 +135,10 @@ names_and_events parseEventsString(std::string str) {
 
     return events_and_names;
 }
+
+
+
+
 
 names_and_events parseEventsFile(std::string json_path)
 {

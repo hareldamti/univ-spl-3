@@ -131,19 +131,13 @@ class ClientIO {
                 terminate = true;
             }
             else if (command == "RECEIPT") {
-                //should we log it for debug perpuses?
+                //should we log it for debug purposes?
                 if(stoi(response.headers_["reciept"]) == terminateReceipt) terminate = true;
             }
             else if (command == "MESSAGE") {
                 names_and_events name_and_events = parseEventsString(response.body_);
                 //save to a file and display
             }
-            
-            //handle serverResponse
-
-            // if (receipt_id == terminateReceipt) terminate = true;
 		}
 	}
-
-
 };
