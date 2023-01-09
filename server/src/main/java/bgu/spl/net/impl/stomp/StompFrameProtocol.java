@@ -28,36 +28,32 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
     @Override
     public void process(String message) {
         Frame request = Frame.parseFrame(message);
-        if (request.terminate) 
+        if (request.terminate) {
             connections.send(connectionId, request.toStringRepr());
-        
+            terminate = true;
+        }
 
         CommandRouter router = new CommandRouter(request, connections, connectionId);
         try {
-            Frame response;
-
-            Frame.Command requestCommand = request.command;
-            switch(requestCommand){
+            Frame response = null;
+            switch(request.command){
                 case CONNECT: response = router.Connect();
                 case DISCONNECT: response = router.Disconnect();
                 case SUBSCRIBE: response = router.Subscribe();
                 case UNSUBSCRIBE: response = router.Unsubscribe();
                 case SEND: response = router.Send();
-                default: response=null;
-
+                default: break;
             }
-            
-            
             if (response != null) {
-                if (response.terminate)
+                if (response.terminate) {
                     connections.disconnect(connectionId);
-                
-                connections.send(connectionId, response.toStringRepr()); // A receipt message
+                    terminate = true;
+                }
+                connections.send(connectionId, response.toStringRepr()); // A receipt/error message
             }
-
         }
         catch (Exception e) {
-            Utils.log("Processing failed\n\nrequest:\n"+message+e.toString(),
+            Utils.log("Processing failed\n\nrequest:\n"+message+"\nerror:\n"+e.toString(),
             Utils.LogLevel.ERROR);
         }
     }
@@ -68,7 +64,6 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
     @Override
     public boolean shouldTerminate() {
         return terminate;
-        
     }
 
     @Override

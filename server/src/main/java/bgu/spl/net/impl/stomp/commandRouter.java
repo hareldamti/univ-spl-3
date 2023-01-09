@@ -14,22 +14,12 @@ public class CommandRouter {
     Frame commandFrame;
     ConnectionsImpl connections;
     int connectionId;
-    HashMap<Frame.Command, Callable<Frame>> commandDictionary = new HashMap<Frame.Command, Callable<Frame>>(){{
-        put(Frame.Command.CONNECT, Connect);
-        put(Frame.Command.DISCONNECT, Disconnect);
-        put(Frame.Command.SUBSCRIBE, Subscribe);
-        put(Frame.Command.UNSUBSCRIBE, Unsubscribe);
-        put(Frame.Command.SEND, Send);
-    }};
 
 
     public CommandRouter(Frame commandFrame, Connections<String> connections, int connectionId) {
         this.commandFrame = commandFrame;
         this.connections = (ConnectionsImpl)connections;
         this.connectionId = connectionId;
-    }
-    public Callable<Frame> getCommand() {
-        return commandDictionary.get(commandFrame.command);
     }
 
     public Frame Connect() {
@@ -47,6 +37,13 @@ public class CommandRouter {
         if (realPasscode == null) {
             connections.userPassword.put(reqUsername, reqPasscode);
         }
+
+        if (Utils.getKeyByValue(connections.userConnId, connectionId) != null)
+        {
+            return Frame.createErrorFrame(commandFrame, "Client already connected",
+            "Disconnecting active client session. You may login again");
+        }
+
         if (connections.userConnId.get(reqUsername) != null)
         {
             return Frame.createErrorFrame(commandFrame, "User connected",
@@ -60,7 +57,7 @@ public class CommandRouter {
         
         String receipt_id;
         if ((receipt_id = commandFrame.headers.get(Frame.HeaderKey.receipt_id)) != null) {
-            receipt.headers.put(Frame.HeaderKey.receipt, receipt_id);
+            receipt.headers.put(Frame.HeaderKey.receipt_id, receipt_id);
         }
         return receipt;
     };
@@ -73,7 +70,7 @@ public class CommandRouter {
 
         Frame receipt = new Frame(Frame.Command.RECIEPT);
         receipt.terminate = true;
-        receipt.headers.put(Frame.HeaderKey.receipt, commandFrame.headers.get(Frame.HeaderKey.receipt_id));
+        receipt.headers.put(Frame.HeaderKey.receipt_id, commandFrame.headers.get(Frame.HeaderKey.receipt_id));
         return receipt;
     };
 

@@ -88,7 +88,7 @@ public class Frame {
         Map<HeaderKey, String> headers = new HashMap<HeaderKey, String>();
         headers.put(HeaderKey.message, errorSummary);
         if (frame.headers.containsKey(HeaderKey.receipt_id))
-            headers.put(HeaderKey.receipt, frame.headers.get(HeaderKey.receipt_id));
+            headers.put(HeaderKey.receipt_id, frame.headers.get(HeaderKey.receipt_id));
         String body = "The message\n-----\n" + frame.toStringRepr() + "\n-----\n" + errorMessage;
         Frame response = new Frame(Command.ERROR, headers, body);
         response.terminate = true;
@@ -121,7 +121,6 @@ public class Frame {
         host,
         message,
         passcode,
-        receipt
     }
 
     public static String headerName(HeaderKey h) {
