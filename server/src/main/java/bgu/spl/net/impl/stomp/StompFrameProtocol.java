@@ -2,7 +2,7 @@ package bgu.spl.net.impl.stomp;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.util.Map.entry;  
+import static java.util.Map.Entry;  
 
 import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.srv.ConnectionHandler;
@@ -26,7 +26,7 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
     }
     
     @Override
-    public void process(String message) {
+    public String process(String message) {
         Frame request = Frame.parseFrame(message);
         if (request.terminate) {
             connections.send(connectionId, request.toStringRepr());
@@ -56,6 +56,7 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
             Utils.log("Processing failed\n\nrequest:\n"+message+"\nerror:\n"+e.toString(),
             Utils.LogLevel.ERROR);
         }
+        return null;
     }
 	
 	/**

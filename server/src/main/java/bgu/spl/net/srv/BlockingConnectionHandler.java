@@ -1,27 +1,30 @@
 package bgu.spl.net.srv;
 
 import bgu.spl.net.api.MessageEncoderDecoder;
-import bgu.spl.net.api.StompMessagingProtocol;
+import bgu.spl.net.api.MessagingProtocol;
+import bgu.spl.net.impl.stomp.StompFrameProtocol;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 
-public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler<T> {
 
-    private final StompMessagingProtocol<T> protocol;
-    private final MessageEncoderDecoder<T> encdec;
+
+public class BlockingConnectionHandler implements Runnable, ConnectionHandler<String> {
+
+    private final MessagingProtocol<String> protocol;
+    private final MessageEncoderDecoder<String> encdec;
     private final Socket sock;
     private BufferedInputStream in;
     private BufferedOutputStream out;
     private volatile boolean connected = true;
 
-    public BlockingConnectionHandler(Socket sock, MessageEncoderDecoder<T> reader, StompMessagingProtocol<T> protocol) {
+    public BlockingConnectionHandler(Socket sock, MessageEncoderDecoder<String> reader, MessagingProtocol<String> protocol) {
         this.sock = sock;
         this.encdec = reader;
         this.protocol = protocol;
-        protocol.start(this);
+        ((StompFrameProtocol)protocol).start(this);
     }
 
     @Override
@@ -32,7 +35,7 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
             out = new BufferedOutputStream(sock.getOutputStream());
             
             while (!protocol.shouldTerminate() && connected && (read = in.read()) >= 0) {
-                T nextMessage = encdec.decodeNextByte((byte) read);
+                String nextMessage = encdec.decodeNextByte((byte) read);
                 if (nextMessage != null) {
                     protocol.process(nextMessage);
                 }
@@ -46,13 +49,13 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
 
     @Override
     public void close() throws IOException {
-        protocol.close();
+        ((StompFrameProtocol)protocol).close();
         connected = false;
         sock.close();
     }
 
     @Override
-    public boolean send(T msg) {
+    public boolean send(String msg) {
         boolean sent = true;
         try{
             out.write(encdec.encode(msg));
@@ -63,4 +66,6 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
         }
         return sent;
     }
+
+
 }
