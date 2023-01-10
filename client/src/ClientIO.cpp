@@ -102,6 +102,7 @@ class ClientIO {
             }
             string destination = "/"+keywords.at(1);
             int subId = subscriptions[destination];
+            subscriptions.erase(destination);
             request.addHeader("id", to_string(subId));
             request.addHeader("receipt-id", to_string(generateNewReceiptId()));
             sendStompFrame(request, ch);
@@ -110,28 +111,25 @@ class ClientIO {
         else if (command == "logout") {
             Frame request("DISCONNECT");
             if (keywords.size() != 1) {
-                cout << "Unsent - logout format: logout" << endl;
-                return "";
+                cout << "Unsent - logout format: logout" << endl; return;
             }
             terminateReceipt = generateNewReceiptId();
             request.addHeader("receipt-id", to_string(terminateReceipt));
-            return request.toStringRepr();
+            sendStompFrame(request, ch);
         }
         
         else if (command == "summary") {
             if (keywords.size() != 2) {
-                cout << "summary format: summary {path.json}" << endl;
-                return "";
+                cout << "summary format: summary {path.json}" << endl; return;
             }
             // TODO: save the summary to filename path
-            return "";
+            
         }
-        
-        return "";
     }
 
     void sendStompFrame(Frame& frame, ConnectionHandler& ch) {
-        if (!ch.sendLine(frame.toStringRepr())) {
+        string msg = frame.toStringRepr();
+        if (!ch.sendLine(msg)) {
             cout << "Disconnected. Exiting...\n" << endl;
             terminate = true;
         }
