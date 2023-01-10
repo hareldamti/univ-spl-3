@@ -85,12 +85,7 @@ void writeFile(std::string json, std::string path) {
     catch (...) { std::cout << "Error while trying to save file" << std::endl; }
 }
 
-std::string toJsonString(names_and_events events) {
-    std::string result;
-    // TODO: convert
-}
-
-names_and_events parseEventsString(std::string str) {
+names_and_events parseEventsJson(std::string str) {
     std::stringstream s(str);
     json data = json::parse(s);
     std::string team_a_name = data["team a"];
@@ -136,9 +131,29 @@ names_and_events parseEventsString(std::string str) {
     return events_and_names;
 }
 
-
-
-
+std::string formatEventMessage(Event& event, string username) {
+    string result = "";
+    result += "user: "+username+"\n";
+    result += "team a: "+event.get_team_a_name()+"\n";
+    result += "team a: "+event.get_team_a_name()+"\n";
+    result += "event name: "+event.get_name()+"\n";
+    result += "time: "+std::to_string(event.get_time())+"\n";
+    result += "general game updates:\n";
+    for (auto& pair : event.get_game_updates()) {
+        result += "\t"+ pair.first +": "+ pair.second +"\n";
+    }
+    result += "team a updates:\n";
+    for (auto& pair : event.get_team_a_updates()) {
+        result += "\t"+ pair.first +": "+ pair.second +"\n";
+    }
+    result += "team b updates:\n";
+    for (auto& pair : event.get_team_b_updates()) {
+        result += "\t"+ pair.first +": "+ pair.second +"\n";
+    }
+    result += "description:\n";
+    result += event.get_description();
+    return result;
+}
 
 names_and_events parseEventsFile(std::string json_path)
 {

@@ -10,10 +10,16 @@ using namespace std;
 class ClientIO {
 	bool terminate;
     int terminateReceipt;
-	vector<string> userCommands;
+
+    bool connected;
+    string username;
     map<string, int> subscriptions;
     int subIdCounter, msgIdCounter;
-	ClientIO(): terminate(false), terminateReceipt(0), userCommands(), subIdCounter(1), msgIdCounter(1){}
+    
+    map<string, map<string, vector<Event>>> totalEvents;
+
+    ClientIO(ConnectionHandler& ch): terminate(false), terminateReceipt(0), connected(false),
+            subIdCounter(1), msgIdCounter(1){}
     
     int generateNewSubId() {return subIdCounter++; }
     int generateNewReceiptId() {return msgIdCounter++; }
@@ -25,83 +31,80 @@ class ClientIO {
 			cin.getline(buf, bufsize);
 			string line(buf);
 			int len=line.length();
-            string request = parseInput(line);
-
-            if (request.length() != 0) 
-                if (!ch.sendLine(request)) {
-                    cout << "Disconnected. Exiting...\n" << endl;
-                    terminate = true;
-                }
+            processInput(line, ch);
 		}
 	}
 
-    string parseInput(string input) {
+    void processInput(string input, ConnectionHandler& ch) {
         vector<string> keywords(0);
         int idx = 0;
         while (idx < input.length()){
-            int next = input.find(' ');
-            keywords.push_back(input.substr(idx, next));
+            int next = input.find(' ', idx);
+            if (next == -1) next = input.length();
+            keywords.push_back(input.substr(idx, next - idx));
             idx = ++next;
         }
         string& command = keywords.at(0);
 
         if (command == "login") {
             Frame request("CONNECT");
-            if (keywords.size() != 4 || keywords.at(1).size() - keywords.at(1).find(':') != 4 || keywords.at(1).size() < 4) {
-                cout << "Unsent - login format: login {host:port} {username} {password}" << endl;
-                return "";
+            if (keywords.size() != 4 || keywords.at(1).find(':') == -1) {
+                cout << "Unsent - login format: login {host:port} {username} {password}" << endl; return;
             }
+            username = keywords.at(2);
             request.addHeader("host", keywords.at(1));
             request.addHeader("login", keywords.at(2));
             request.addHeader("passcode", keywords.at(3));
-            return request.toStringRepr();
+            sendStompFrame(request, ch);
         }
 
         if (command == "join") {
             Frame request("SUBSCRIBE");
             if (keywords.size() != 2) {
-                cout << "Unsent - join format: join {game name} (game name = {team a}_{team_b})" << endl;
-                return "";
+                cout << "Unsent - join format: join {game name} (game name = {team a}_{team_b})" << endl; return;
             }
             string destination = "/"+keywords.at(1);
             subscriptions[destination] = generateNewSubId();
             request.addHeader("destination", destination);
             request.addHeader("id", to_string(subscriptions[destination]));
             request.addHeader("receipt-id", to_string(generateNewReceiptId()));
-            return request.toStringRepr();
+            sendStompFrame(request, ch);
         }
 
         else if (command == "report") {
-            Frame request("SEND");
             if (keywords.size() != 2) {
-                cout << "Unsent - send format: send {path.json})" << endl;
-                return "";
+                cout << "Unsent - send format: send {path.json})" << endl; return;
             }
+
+            string eventsJson;
+            try { eventsJson = readFile(keywords.at(1)); }
+            catch (...) {cout << "Unsent - can't open file (did you type a correct file name? is it open?)" << endl; return;}
             
-            try { string message = readFile(keywords.at(1)); }
-            catch (...) {cout << "Unsent - can't open file (did you type a correct file name? is it open?)" << endl; return "";}
+            names_and_events names_and_events;
+            try { names_and_events = parseEventsJson(eventsJson); }
+            catch (...) {cout << "Unsent - can't parse file (make sure the json is formatted correctly))" << endl; return;}
             
-            try { names_and_events name_and_events = parseEventsString(message); }
-            catch (...) {cout << "Unsent - can't parse file (make sure the json is formatted correctly))" << endl; return "";}
-            
-            string game_name = name_and_events.team_a_name + "_" + name_and_events.team_b_name;
-            request.addHeader("destination", "/"+game_name);
-            request.addHeader("id", );
-            request.body_ = message;
-            return request.toStringRepr();
+            string game_name = names_and_events.team_a_name + "_" + names_and_events.team_b_name;
+            string destination = "/"+game_name;
+            for (auto& event : names_and_events.events) {
+                Frame eventFrame("SEND");
+                eventFrame.addHeader("destination", destination);
+                eventFrame.body_ = formatEventMessage(event, username);
+                sendStompFrame(eventFrame, ch);
+                totalEvents[destination][username].push_back(event);
+            }
         }
 
         else if (command == "exit") {
             Frame request("UNSUBSCRIBE");
             if (keywords.size() != 2) {
-                cout << "Unsent - exit format: exit {game_name} (game name = {team a}_{team_b})" << endl;
-                return "";
+                cout << "Unsent - exit format: exit {game_name} (game name = {team a}_{team_b})" << endl; return;
             }
             string destination = "/"+keywords.at(1);
             int subId = subscriptions[destination];
             request.addHeader("id", to_string(subId));
             request.addHeader("receipt-id", to_string(generateNewReceiptId()));
-            return request.toStringRepr();
+            sendStompFrame(request, ch);
         }
 
         else if (command == "logout") {
@@ -127,6 +130,13 @@ class ClientIO {
         return "";
     }
 
+    void sendStompFrame(Frame& frame, ConnectionHandler& ch) {
+        if (!ch.sendLine(frame.toStringRepr())) {
+            cout << "Disconnected. Exiting...\n" << endl;
+            terminate = true;
+        }
+    }
+
 	void displayMessages(ConnectionHandler& ch) {
 		while (!terminate) {
             string responseString;
@@ -135,14 +145,16 @@ class ClientIO {
                 std::cout << "Disconnected. Exiting...\n" << std::endl;
                 terminate = true;
             }
-            Frame response = parseFrame(responseString); 
+            Frame response = parseFrame(responseString);
             string command = response.command_;
             if (command == "ERROR") {
                 terminate = true;
+                connected = false;
             }
+            else if (command == "CONNECTED") { connected = true; }
             else if (command == "RECEIPT") {
-                //should we log it for debug purposes?
-                if(stoi(response.headers_["reciept-id"]) == terminateReceipt) terminate = true;
+                if(stoi(response.headers_["reciept-id"]) == terminateReceipt)
+                    { terminate = true; connected = false; }
             }
             else if (command == "MESSAGE") {
                 names_and_events name_and_events = parseEventsString(response.body_);

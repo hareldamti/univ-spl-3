@@ -28,7 +28,14 @@ string Frame::toStringRepr() {
 
 Frame parseFrame(string serverResponse){
     vector<string> splittedResponse;
-    boost::split(splittedResponse, serverResponse, boost::is_any_of("\n"));
+    int idx = 0;
+    while (idx < serverResponse.length()) {
+        int next = serverResponse.find('\n', idx);
+        if (next == -1) next = serverResponse.length();
+        splittedResponse.push_back(serverResponse.substr(idx, next-idx));
+        idx = next + 1;
+    }
+
     int lineIdx = 0;
 
     //creates a frame with the command from the server response
@@ -38,12 +45,14 @@ Frame parseFrame(string serverResponse){
     //parses the headers from server to the frame's map
     while(lineIdx < splittedResponse.size() && !splittedResponse.at(lineIdx).empty()){
         vector<string> headerPair;
-        boost::split(headerPair, splittedResponse.at(lineIdx), boost::is_any_of(":"));
-        parsedFrame.addHeader(headerPair.at(0), headerPair.at(1));
+        
+        string header = splittedResponse.at(lineIdx);
+        int seperator = header.find(':');
+        parsedFrame.addHeader(header.substr(0, seperator), header.substr(seperator+1,header.length()));
         lineIdx++;
     }
+
     lineIdx++;
-    
     //if there is a message body, adds it to the frame
     for (; lineIdx < splittedResponse.size(); lineIdx++)
         parsedFrame.body_ += splittedResponse.at(lineIdx) + "\n";
