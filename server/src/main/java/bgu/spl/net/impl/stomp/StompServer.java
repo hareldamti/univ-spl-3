@@ -11,8 +11,8 @@ public class StompServer {
         boolean reactorMode;
         try {
             port = Integer.parseInt(args[0]);
-            if (args[1].toLowerCase() == "reactor") reactorMode = true;
-            else if (args[1].toLowerCase() == "tpc") reactorMode = false;
+            if (args[1].toLowerCase().equals("reactor")) reactorMode = true;
+            else if (args[1].toLowerCase().equals("tpc")) reactorMode = false;
             else throw new IllegalArgumentException("Illegal server mode");
         }
         catch (Exception ex) { System.out.println("Restart with arguments {port} {tpc/reactor}"); return; }
