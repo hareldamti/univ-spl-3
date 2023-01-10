@@ -91,7 +91,7 @@ class ClientIO {
                 eventFrame.addHeader("destination", destination);
                 eventFrame.body_ = formatEventMessage(event, username);
                 sendStompFrame(eventFrame, ch);
-                totalEvents[destination][username].push_back(event);
+                totalEvents[game_name][username].push_back(event);
             }
         }
 
@@ -119,11 +119,16 @@ class ClientIO {
         }
         
         else if (command == "summary") {
-            if (keywords.size() != 2) {
-                cout << "summary format: summary {path.json}" << endl; return;
+            if (keywords.size() != 4) {
+                cout << "summary format: summary {game_name} {user} {path.json}" << endl; return;
             }
-            // TODO: save the summary to filename path
-            
+
+            string game_name = keywords.at(1);
+            string user = keywords.at(2);
+            string path = keywords.at(3);
+
+            string output = createSummaryString(totalEvents, game_name, user);
+            writeFile(output, path);
         }
     }
 

@@ -61,9 +61,7 @@ const std::string &Event::get_discription() const
     return this->description;
 }
 
-Event::Event(const std::string &frame_body) : team_a_name(""), team_b_name(""), name(""), time(0), game_updates(), team_a_updates(), team_b_updates(), description("")
-{
-}
+Event::Event(const std::string &frame_body) : team_a_name(""), team_b_name(""), name(""), time(0), game_updates(), team_a_updates(), team_b_updates(), description(""){}
 
 std::string readFile(std::string path) {
     std::ifstream inFile;
@@ -151,11 +149,58 @@ std::string formatEventMessage(Event& event, string username) {
         result += "\t"+ pair.first +": "+ pair.second +"\n";
     }
     result += "description:\n";
-    result += event.get_description();
+    result += event.get_discription();
     return result;
 }
 
-names_and_events parseEventsFile(std::string json_path)
+std::string createSummaryString(std::map<string, std::map<string, std::vector<Event>>>& totalEvents,
+    std::string game_name, std::string username) {
+    std::string result;
+
+    if (totalEvents.find(game_name) == totalEvents.end() ||
+        totalEvents[game_name].find(username) == totalEvents[game_name].end())
+        return username + "'s updates for " + game_name + " not found";
+    
+    // Select the desired event list and sort them by time & halftime
+    std::vector<Event>& events = totalEvents[game_name][username];
+    std::sort(events.begin(), events.end(), [](Event const &a, Event const &b) { 
+        return (b.get_game_updates().at("before halftime") == "true" && a.get_game_updates().at("before halftime") == "false") ||
+        (b.get_game_updates().at("before halftime") == a.get_game_updates().at("before halftime") &&
+        b.get_time() > a.get_time());
+    });
+    Event& last = events.at(events.size()-1);
+    result += last.get_team_a_name() + " vs " + last.get_team_b_name() + "\n";
+    
+    map<string, string> game_updates, team_a_updates, team_b_updates;
+    for (auto& event : events) {
+        for (auto& pair : event.get_game_updates())
+            game_updates[pair.first] = pair.second;
+        for (auto& pair : event.get_team_a_updates())
+            team_a_updates[pair.first] = pair.second;
+        for (auto& pair : event.get_team_b_updates())
+            team_b_updates[pair.first] = pair.second;
+    }
+
+    result += "Game stats:\n";
+    for (auto& pair : game_updates) {
+        result += "\t"+ pair.first +": "+ pair.second +"\n";
+    }
+    result += last.get_team_a_name()+" stats:\n";
+    for (auto& pair : team_a_updates) {
+        result += "\t"+ pair.first +": "+ pair.second +"\n";
+    }
+    result += last.get_team_b_name()+" stats:\n";
+    for (auto& pair : team_b_updates) {
+        result += "\t"+ pair.first +": "+ pair.second +"\n";
+    }
+    result += "Game event reports:\n";
+    for (Event& event : events) {
+        result += event.get_time() + " - " + event.get_name() + ":\n\n";
+        result += event.get_discription() + "\n\n\n";
+    }
+    return result;
+}
+
 {
     std::ifstream f(json_path);
     json data = json::parse(f);
