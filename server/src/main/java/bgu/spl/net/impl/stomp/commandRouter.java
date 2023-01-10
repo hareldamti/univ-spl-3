@@ -93,7 +93,7 @@ public class CommandRouter {
         if (receipt_id == null) return null;
         
         Frame receipt = new Frame(Frame.Command.RECIEPT);
-        receipt.headers.put(Frame.HeaderKey.receipt, receipt_id);
+        receipt.headers.put(Frame.HeaderKey.receipt_id, receipt_id);
         return receipt;
     }
 
@@ -113,7 +113,7 @@ public class CommandRouter {
         if (receipt_id == null) return null;
         
         Frame receipt = new Frame(Frame.Command.RECIEPT);
-        receipt.headers.put(Frame.HeaderKey.receipt, receipt_id);
+        receipt.headers.put(Frame.HeaderKey.receipt_id, receipt_id);
         return receipt;
     }
     
@@ -150,7 +150,7 @@ public class CommandRouter {
         if (receipt_id == null) return null;
         
         Frame receipt = new Frame(Frame.Command.RECIEPT);
-        receipt.headers.put(Frame.HeaderKey.receipt, receipt_id);
+        receipt.headers.put(Frame.HeaderKey.receipt_id, receipt_id);
         return receipt;
     }
 }
