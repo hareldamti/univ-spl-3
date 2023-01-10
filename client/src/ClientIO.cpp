@@ -91,7 +91,7 @@ class ClientIO {
                 eventFrame.addHeader("destination", destination);
                 eventFrame.body_ = formatEventMessage(event, username);
                 sendStompFrame(eventFrame, ch);
-                totalEvents[game_name][username].push_back(event);
+                totalEvents[destination][username].push_back(event);
             }
         }
 
@@ -127,7 +127,7 @@ class ClientIO {
             string user = keywords.at(2);
             string path = keywords.at(3);
 
-            string output = createSummaryString(totalEvents, game_name, user);
+            string output = createSummaryString(totalEvents, "/"+game_name, user);
             writeFile(output, path);
         }
     }
@@ -140,7 +140,7 @@ class ClientIO {
         }
     }
 
-	void displayMessages(ConnectionHandler& ch) {
+	void processMessages(ConnectionHandler& ch) {
 		while (!terminate) {
             string responseString;
             if(!ch.getLine(responseString)){
@@ -160,8 +160,13 @@ class ClientIO {
                     { terminate = true; connected = false; }
             }
             else if (command == "MESSAGE") {
-                names_and_events name_and_events = parseEventsString(response.body_);
-                //save to a file and display
+                pair<string, Event> receivedEvent = parseEventMessage(response.body_);
+
+                if (receivedEvent.first != username){
+                    totalEvents[reponse.headers_.at("destination")][receivedEvent.first].push_back(receivedEvent.second);
+                    cout << "--Update received-- "+reponse.headers_.at("destination") << endl;
+                    cout << response.body_ << endl;
+                }
             }
 		}
 	}
