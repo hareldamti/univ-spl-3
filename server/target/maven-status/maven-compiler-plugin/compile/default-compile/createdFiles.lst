@@ -19,6 +19,7 @@ bgu/spl/net/impl/newsfeed/NewsFeedClientMain.class
 bgu/spl/net/srv/NonBlockingConnectionHandler.class
 bgu/spl/net/api/MessageEncoderDecoder.class
 bgu/spl/net/impl/newsfeed/PublishNewsCommand.class
+bgu/spl/net/impl/stomp/StompFrameProtocol$1.class
 bgu/spl/net/srv/Connections.class
 bgu/spl/net/srv/ActorThreadPool.class
 bgu/spl/net/impl/rci/ObjectEncoderDecoder.class

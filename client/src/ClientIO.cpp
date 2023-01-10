@@ -86,6 +86,7 @@ class ClientIO {
             
             string game_name = name_and_events.team_a_name + "_" + name_and_events.team_b_name;
             request.addHeader("destination", "/"+game_name);
+            request.addHeader("id", );
             request.body_ = message;
             return request.toStringRepr();
         }
