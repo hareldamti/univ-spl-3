@@ -62,7 +62,7 @@ void ClientIO::setState(ClientState newState) {
     sync.~lock_guard();
 }
 
-boolean ClientIO::compareState(ClientState otherState) {
+bool ClientIO::compareState(ClientState otherState) {
     lock_guard<mutex> sync(stateLock);
     return state == otherState;
 }
