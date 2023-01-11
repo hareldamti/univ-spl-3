@@ -49,7 +49,10 @@ public class ConnectionsImpl implements Connections<String>{
     @Override
     public boolean send(int connectionId, String msg) {
         try {
-            if (connIdHandler.get(connectionId).send(msg)) return true;
+            if (connIdHandler.get(connectionId).send(msg)){
+                Utils.log("\n--Sent response--\nConnection Id:\t"+connectionId+"\nFrame:\n\n"+msg, Utils.LogLevel.DEBUG);
+                return true;
+            }
         }
         catch (NullPointerException e) {
             Utils.log("Connection id "+connectionId+" isn't assigned to a handler",

@@ -180,8 +180,8 @@ void ClientIO::processInput(string input) {
         string destination = "/"+game_name;
 
         lock_guard<mutex> sync(eventsLock);
-        if (totalEvents.find(destination) == totalEvents.end())
-        { cout << "Unsent - You are not subscribed to " << destination << endl; return; }
+        if (subscriptions[destination] == 0)
+        { cout << "Unsent - You are not subscribed to " << destination << "\n" << endl; return; }
         sync.~lock_guard();
         
         for (auto& event : names_and_events.events) {
@@ -199,11 +199,14 @@ void ClientIO::processInput(string input) {
     else if (command == "exit") {
         Frame request("UNSUBSCRIBE");
         if (keywords.size() != 2) {
-            cout << "Unsent - exit format: exit {game_name} (game name = {team a}_{team_b})" << endl; return;
+            cout << "Unsent - exit format: exit {game_name} (game name = {team a}_{team_b})\n" << endl; return;
         }
         string destination = "/"+keywords.at(1);
         int subId = subscriptions[destination];
         subscriptions.erase(destination);
+        lock_guard<mutex> sync(eventsLock);
+        totalEvents.erase(destination);
+        sync.~lock_guard();
         request.addHeader("id", to_string(subId));
         request.addHeader("receipt-id", to_string(generateNewReceiptId()));
         sendStompFrame(request);
@@ -212,7 +215,7 @@ void ClientIO::processInput(string input) {
     else if (command == "logout") {
         Frame request("DISCONNECT");
         if (keywords.size() != 1) {
-            cout << "Unsent - logout format: logout" << endl; return;
+            cout << "Unsent - logout format: logout\n" << endl; return;
         }
         nextStateReceipt = generateNewReceiptId();
         setState(ClientState::AwaitingDisconnected);
