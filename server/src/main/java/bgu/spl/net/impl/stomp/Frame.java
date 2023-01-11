@@ -50,8 +50,12 @@ public class Frame {
         while (lineIdx < lines.length && lines[lineIdx].length() != 0){
             String currentLine = lines[lineIdx];
             String[] keyValuePair = currentLine.split(":");
-            if (keyValuePair.length != 2) 
+            if (keyValuePair.length != 2){
                 result.terminate = true;
+                errorSummary = "Illegal header";
+                errorMessage = currentLine + "\nNotice to use a key value pair,\n"+
+                "seperated by :, and a relevant key (found in manual)";
+            }
             else {
                 try {
                     result.headers.put(
@@ -80,7 +84,7 @@ public class Frame {
     public String toStringRepr() {
         String raw_frame = command + "\n";
         for (HeaderKey key : headers.keySet()) {raw_frame += String.format("%s:%s\n",headerName(key), headers.get(key));}
-        raw_frame += "\n" + body + "\u0000";
+        raw_frame += "\n" + body;
         return raw_frame;
     }
 

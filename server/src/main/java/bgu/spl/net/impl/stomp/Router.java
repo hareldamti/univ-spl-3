@@ -62,7 +62,7 @@ public class Router {
         }
 
         connections.userConnId.put(reqUsername, connectionId);
-
+        
         Frame receipt = new Frame(Frame.Command.CONNECTED);
         receipt.headers.put(Frame.HeaderKey.version, request.headers.get(Frame.HeaderKey.accept_version));
         

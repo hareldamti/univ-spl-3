@@ -23,14 +23,14 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
     
     @Override
     public void process(String message) {
+        Utils.log("--Received request--\nConnection Id:\t"+connectionId+"\nFrame:\n\n"+message, Utils.LogLevel.DEBUG);
         Frame request = Frame.parseFrame(message);
         if (request.terminate) {
             connections.send(connectionId, request.toStringRepr());
             terminate = true;
         }
 
-        Utils.log("--Received request--\n\nConnection Id:\t"+connectionId+"\nFrame:\n"+request.toStringRepr(), Utils.LogLevel.DEBUG);
-
+        
         Router router = new Router(request, connections, connectionId);
         try {
             Frame response = router.routeRequest();
@@ -44,8 +44,8 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
             }
         }
         catch (Exception e) {
-            Utils.log("Processing failed\n\nrequest:\n"+message+"\nerror:\n"+e.toString(),
-            Utils.LogLevel.ERROR);
+            Utils.log("Processing failed\n\nrequest:\n"+message+"\nerror:\n"+e.toString());
+            Utils.log(e);
         }
     }
 	

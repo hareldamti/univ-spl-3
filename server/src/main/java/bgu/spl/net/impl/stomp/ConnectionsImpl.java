@@ -49,7 +49,7 @@ public class ConnectionsImpl implements Connections<String>{
     @Override
     public boolean send(int connectionId, String msg) {
         try {
-            if (connIdHandler.get(connectionId).send(msg)) return true;
+            if (connIdHandler.get(connectionId).send(msg + "\u0000")) return true;
         }
         catch (NullPointerException e) {
             Utils.log("Connection id "+connectionId+" isn't assigned to a handler",
@@ -94,27 +94,27 @@ public class ConnectionsImpl implements Connections<String>{
     public void disconnect(int connectionId) {
 
         String username = Utils.getKeyByValue(userConnId, connectionId);
-
-        // remove user's subscriptions
-        for (String channel : channelSubscriptions.keySet()) {
-            List<SimpleEntry<String, Integer>> subs = channelSubscriptions.get(channel);
-            List<SimpleEntry<String, Integer>> userSubs = new ArrayList<SimpleEntry<String, Integer>>();
-            for (SimpleEntry<String, Integer> sub : subs) 
-                if (sub.getKey() == username) 
-                    userSubs.add(sub);
-            
-            for (SimpleEntry<String, Integer> userSub : userSubs)
-                subs.remove(userSub);
+        if (username != null) {
+            // remove user's subscriptions
+            for (String channel : channelSubscriptions.keySet()) {
+                List<SimpleEntry<String, Integer>> subs = channelSubscriptions.get(channel);
+                List<SimpleEntry<String, Integer>> userSubs = new ArrayList<SimpleEntry<String, Integer>>();
+                for (SimpleEntry<String, Integer> sub : subs) 
+                    if (sub.getKey() == username) 
+                        userSubs.add(sub);
+                
+                for (SimpleEntry<String, Integer> userSub : userSubs)
+                    subs.remove(userSub);
+            }
+            // remove user's current connection id
+            userConnId.remove(username);
         }
-
-        // remove user's current connection id
-        userConnId.remove(username);
     }
 
 
     @Override
     public int generateUniqueConnectionId(ConnectionHandler<String> conn) {
-        connIdHandler.put(msgIdCounter, conn);
+        connIdHandler.put(connIdCounter, conn);
         return connIdCounter++;
     }
 

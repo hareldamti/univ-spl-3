@@ -107,7 +107,8 @@ bool ClientIO::startConnection() {
                 cout << "Connected to the server. logging in..." << endl;
 
                 nextStateReceipt = generateNewReceiptId();
-                request.addHeader("host", keywords.at(1));
+                request.addHeader("accept-version", "1.2");
+                request.addHeader("host", host);
                 request.addHeader("login", keywords.at(2));
                 request.addHeader("passcode", keywords.at(3));
                 request.addHeader("receipt-id", to_string(nextStateReceipt));
@@ -262,7 +263,7 @@ void ClientIO::processMessages() {
         }
         
         else if (command == "ERROR") {
-            cout << "Received an error message from the server: " << response.getHeader("message")  << "\tFull error message: \n\n";
+            cout << "Received an error message from the server: " << response.getHeader("message")  << "\nFull error message: \n\n";
             cout << response.body_;
             setState(ClientState::Disconnected);
         }
