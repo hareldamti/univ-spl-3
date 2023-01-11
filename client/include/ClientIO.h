@@ -47,7 +47,7 @@ class ClientIO{
         int generateNewReceiptId();
         bool startConnection();
         void setState(ClientState newState);
-        boolean compareState(ClientState otherState);
+        bool compareState(ClientState otherState);
 
         //Threads tasks
         void sendRequests();
