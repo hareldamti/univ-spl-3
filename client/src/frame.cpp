@@ -14,7 +14,7 @@ void Frame::addHeader(string key, string value) {
     headers_[key] = value;
 }
 
-void Frame::getHeader(string key) {
+string Frame::getHeader(string key) {
     return headers_[key];
 }
 

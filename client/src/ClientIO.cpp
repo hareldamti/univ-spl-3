@@ -1,17 +1,18 @@
 #include "../include/ClientIO.h"
 #include "../include/ConnectionHandler.h"
+#include "../include/frame.h"
+#include "../include/event.h"
+
 #include <iostream>
+#include <map>
 #include <mutex>
-#include "frame.cpp"
-#include "event.cpp"
 using namespace std;
 
 
 class ClientIO {
-    
     // TODO: mutex lock totalEvents, state
     
-    ConnectionHandler connectionHandler;
+    ConnectionHandler* connectionHandler;
 
     int nextStateReceipt;
     ClientState state;
@@ -21,19 +22,19 @@ class ClientIO {
     int subIdCounter, msgIdCounter;
     map<string, map<string, vector<Event>>> totalEvents;
 
-    ClientIO(): terminate(false), stateReceipt(0), state(ClientState.AwaitingLogin),
+    ClientIO(): connectionHandler(nullptr), nextStateReceipt(0), state(AwaitingLogin),
             subIdCounter(1), msgIdCounter(1){}
     
     int generateNewSubId() {return subIdCounter++; }
     int generateNewReceiptId() {return msgIdCounter++; }
 
-    boolean startConnection() {
-        while (state == ClientState.awatingLogin) {
+    bool startConnection() {
+        while (state == ClientState::AwaitingLogin) {
             // read user's line
             const short bufsize = 1024;
             char buf[bufsize];
             cin.getline(buf, bufsize);
-            string line(buf);
+            string input(buf);
 
             // split to keywords
             vector<string> keywords(0);
@@ -44,6 +45,7 @@ class ClientIO {
                 keywords.push_back(input.substr(idx, next - idx));
                 idx = ++next;
             }
+            string command(keywords.at(0));
 
             //try to connect & login
             if (command == "login") {
@@ -56,10 +58,10 @@ class ClientIO {
 
                     int seperator = keywords.at(1).find(':');
                     string host = keywords.at(1).substr(0,seperator);
-                    int port = keywords.at(1).substr(seperator + 1, 4);
+                    int port = stoi(keywords.at(1).substr(seperator + 1, 4));
 
-                    connectionHandler(host, port);
-                    if (!connectionHandler.connect()) {
+                    connectionHandler = new ConnectionHandler(host, port);
+                    if (!connectionHandler->connect()) {
                         cerr << "Cannot connect to " << host << ":" << port << endl;
                         return false;
                     }
@@ -71,7 +73,7 @@ class ClientIO {
                     request.addHeader("passcode", keywords.at(3));
                     request.addHeader("receipt-id", to_string(nextStateReceipt));
                     sendStompFrame(request);
-                    state = ClientState.AwaitingConnected;
+                    state = ClientState::AwaitingConnected;
                 }
             }
 
@@ -83,7 +85,7 @@ class ClientIO {
     }
 
 	void sendRequests() {
-		while (state != ClientState.Disconnected && state != ClientState.AwatingDisconnect) {
+		while (state != ClientState::Disconnected && state != ClientState::AwatingDisconnect) {
 			const short bufsize = 1024;
 			char buf[bufsize];
 			cin.getline(buf, bufsize);
@@ -190,40 +192,40 @@ class ClientIO {
 
     void sendStompFrame(Frame& frame) {
         string msg = frame.toStringRepr();
-        if (!connectionHandler.sendLine(msg)) {
+        if (!connectionHandler->sendLine(msg)) {
             cout << "Disconnected. Exiting...\n" << endl;
             terminate = true;
         }
     }
 
 	void processMessages() {
-		while (state != ClientState.Disconnected) {
+		while (state != ClientState::Disconnected) {
             
             string responseString;
-            if(!connectionHandler.getLine(responseString)){
+            if(!connectionHandler->getLine(responseString)){
                 cout << "Disconnected. Exiting...\n" << endl;
-                state = ClientState.Disconnected;
+                state = ClientState::Disconnected;
             }
 
             Frame response = parseFrame(responseString);
             string command = response.command_;
             
             if (command == "CONNECTED") {
-                if (state == ClientState.AwatingConnected && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
-                    state = ClientState.Connected;
+                if (state == ClientState::AwatingConnected && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
+                    state = ClientState::Connected;
                 }
             }
             
             else if (command == "ERROR") {
                 cout << "Received an error message from the server: " << response.getHeader("message")  << "\tFull error message: \n\n";
                 cout << response.body_;
-                state = ClientState.Disconnected;
+                state = ClientState::Disconnected;
             }
             
             else if (command == "RECEIPT") {
-                if (state == ClientState.AwatingDisconnected && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
+                if (state == ClientState::AwatingDisconnected && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
                     cout << "Disconnected successfully " << endl;
-                    state = ClientState.Disconnected;
+                    state = ClientState::Disconnected;
                 }
             }
             else if (command == "MESSAGE") {
@@ -236,4 +238,9 @@ class ClientIO {
             }
 		}
 	}
+
+    ~ClientIO() {
+        delete connectionHandler;
+    }
 };
+

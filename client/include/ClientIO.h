@@ -3,36 +3,13 @@
 #include <vector>
 #include <string>
 #include <mutex>
+#include <map>
+
+#include "ConnectionHandler.h"
+#include "frame.h"
+#include "event.h"
 
 using namespace std;
-
-
-class ClientIO{
-    public:
-        // flag representing connection with server
-        bool terminate;
-        //list of user commands for the thread to process
-        vector<string> userCommands;
-        //manages username-subscriptionId mappings
-        map<string, int> subscriptions;
-        //uniqueIds factory
-        int subIdCounter, msgIdCounter;
-        //mutex object to protect userCommands
-        mutex userCommands_mutex;
-    
-    public:
-        ClientIO();
-        int generateNewSubId();
-        int generateNewReceiptId();
-
-        //thread 1 task - resolving and processing user command input
-        void sendRequests(ConnectionHandler& ch);
-
-        string parseInput(string input);
-
-        //thread 2 task - communicating with server
-        void displayMessages(ConnectionHandler& ch);
-};
 
 enum ClientState {
     AwaitingLogin,
@@ -40,4 +17,38 @@ enum ClientState {
     Connected,
     AwaitingDisconnection,
     Disconnected
-}
+};
+
+class ClientIO{
+    public:
+        ConnectionHandler connectionHandler;
+
+        int nextStateReceipt;
+        
+        ClientState state;
+        // flag representing connection with server
+
+        string username;
+        //manages username-subscriptionId mappings
+        map<string, int> subscriptions;
+        //uniqueIds factory
+        int subIdCounter, msgIdCounter;
+
+        map<string, map<string, vector<Event>>> totalEvents;
+    
+    public:
+        ClientIO();
+        int generateNewSubId();
+        int generateNewReceiptId();
+        bool startConnection();
+
+        //thread 1 task - resolving and processing user command input
+        void sendRequests();
+
+        void processInput(string input);
+
+        void sendStompFrame(Frame& frame);
+
+        void processMessages();
+};
+
