@@ -8,12 +8,13 @@ using boost::asio::ip::tcp;
 
 class ConnectionHandler {
 private:
-	const std::string host_;
-	const short port_;
+	
 	boost::asio::io_service io_service_;   // Provides core I/O functionality
 	tcp::socket socket_;
 
 public:
+	const std::string host_;
+	const short port_;
 	ConnectionHandler();
 	ConnectionHandler(std::string host, short port);
 

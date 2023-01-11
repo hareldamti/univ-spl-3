@@ -8,6 +8,7 @@
 #include <sstream>
 using json = nlohmann::json;
 using namespace std;
+
 Event::Event(string team_a_name, string team_b_name, string name, int time,
              map<string, string> game_updates, map<string, string> team_a_updates,
              map<string, string> team_b_updates, string discription)
@@ -155,7 +156,7 @@ string formatEventMessage(Event& event, string username) {
 
 pair<string, Event> parseEventMessage(string message) {
     vector<string> lines;
-    int idx = 0;
+    unsigned short idx = 0;
     while (idx < message.length()) {
         int next = message.find('\n', idx);
         if (next == -1) next = message.length();
@@ -163,15 +164,14 @@ pair<string, Event> parseEventMessage(string message) {
         idx = next + 1;
     }
 
-    int i = 0;
-    string user = lines[i].substring(lines[i].find(':')+1,lines[i].length);
-    string team_a_name = lines[++i].substring(lines[i].find(':')+1,lines[i].length);
-    string team_b_name = lines[++i].substring(lines[i].find(':')+1,lines[i].length);
-    string name = lines[++i].substring(lines[i].find(':')+1,lines[i].length);
-    int time = stoi(lines[++i].substring(lines[i].find(':')+1,lines[i].length));
+    unsigned short i = 0;
+    string user = lines[i].substr(lines[i].find(':')+1,lines[i].length()); i++;
+    string team_a_name = lines[i].substr(lines[i].find(':')+1,lines[i].length()); i++;
+    string team_b_name = lines[i].substr(lines[i].find(':')+1,lines[i].length()); i++;
+    string name = lines[i].substr(lines[i].find(':')+1,lines[i].length()); i++;
+    int time = stoi(lines[i].substr(lines[i].find(':')+1,lines[i].length()));i += 2;
     
     //general game updates
-    i += 2;
     map<string, string> game_updates;
     while (lines[i] != "team a updates:") {
         int seperator = lines[i].find(':');
@@ -191,7 +191,7 @@ pair<string, Event> parseEventMessage(string message) {
     }
     i += 2;
     string description = "";
-    while (i < lines.size()) description += lines[i] + (i == lines.size()-1)?"":"\n";
+    while (i < lines.size()) description += lines[i] + ((i == lines.size()-1)?"":"\n");
 
     return {user, Event(team_a_name, team_b_name, name, time,
              game_updates, team_a_updates, team_b_updates, description)};

@@ -5,56 +5,55 @@
 #include <map>
 #include <vector>
 
+using namespace std;
 class Event
 {
 private:
     // name of team a
-    std::string team_a_name;
+    string team_a_name;
     // name of team b
-    std::string team_b_name;
+    string team_b_name;
     // name of the event
-    std::string name;
+    string name;
     // time of the event in seconds
     int time;
     // map of all the general game updates
-    std::map<std::string, std::string> game_updates;
+    map<string, string> game_updates;
     // map of all team a updates the second type can be a string bool or int
-    std::map<std::string, std::string> team_a_updates;
+    map<string, string> team_a_updates;
     // map of all team b updates
-    std::map<std::string, std::string> team_b_updates;
+    map<string, string> team_b_updates;
     // description of the event
-    std::string description;
+    string description;
 
 public:
-    Event(std::string name, std::string team_a_name, std::string team_b_name, int time, std::map<std::string, std::string> game_updates, std::map<std::string, std::string> team_a_updates, std::map<std::string, std::string> team_b_updates, std::string discription);
-    Event(const std::string & frame_body);
+    Event(string name, string team_a_name, string team_b_name, int time, map<string, string> game_updates, map<string, string> team_a_updates, map<string, string> team_b_updates, string discription);
+    Event(const string & frame_body);
     virtual ~Event();
-    const std::string &get_team_a_name() const;
-    const std::string &get_team_b_name() const;
-    const std::string &get_name() const;
+    const string &get_team_a_name() const;
+    const string &get_team_b_name() const;
+    const string &get_name() const;
     int get_time() const;
-    const std::map<std::string, std::string> &get_game_updates() const;
-    const std::map<std::string, std::string> &get_team_a_updates() const;
-    const std::map<std::string, std::string> &get_team_b_updates() const;
-    const std::string &get_discription() const;
+    const map<string, string> &get_game_updates() const;
+    const map<string, string> &get_team_a_updates() const;
+    const map<string, string> &get_team_b_updates() const;
+    const string &get_discription() const;
 };
 
 // an object that holds the names of the teams and a vector of events, to be returned by the parseEventsFile function
 struct names_and_events {
-    std::string team_a_name;
-    std::string team_b_name;
-    std::vector<Event> events;
+    string team_a_name;
+    string team_b_name;
+    vector<Event> events;
 };
 
 // function that parses the json file and returns a names_and_events object
 
 // Utils
-std::string readFile(std::string path);
-names_and_events parseEvents(std::string json);
-std::string toJsonString(names_and_events events);
-void writeFile(std::string json, std::string path);
-
-names_and_events parseEventsFile(std::string path);
-names_and_events parseEventsString(std::string json);
-names_and_events toJsonString(Event json);
-names_and_events saveFile(std::string json);
+string readFile(string path);
+void writeFile(string json, string path);
+names_and_events parseEventsJson(string str);
+string formatEventMessage(Event& event, string username);
+pair<string, Event> parseEventMessage(string message);
+string createSummaryString(map<string, map<string, vector<Event>>>& totalEvents,
+    string game_name, string username);

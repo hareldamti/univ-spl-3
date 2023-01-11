@@ -16,14 +16,9 @@ class Frame
         
         Frame(string command, map<string, string> headers, string body);
         Frame(string command);
-        ~Frame();
-
         
         void addHeader(string key, string value);
         string getHeader(string key);
         string toStringRepr();
-        Frame parseFrame(string serverResponse);
 };
-
-string parseInput(string input);
-string parseResponse(string input);
+Frame parseFrame(string serverResponse);

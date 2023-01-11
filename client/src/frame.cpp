@@ -1,6 +1,4 @@
 #include "../include/frame.h"
-#include <vector>
-
 
 using namespace std;
 Frame::Frame(string command, std::map<string, string> headers, string body) :
@@ -24,13 +22,14 @@ string Frame::toStringRepr() {
         str += header.first + ":" + header.second + "\n";
     }
     str += "\n" + body_ + "\u0000";
+    return str;
 }
 
 Frame parseFrame(string serverResponse){
     vector<string> splittedResponse;
-    int idx = 0;
+    unsigned short idx = 0;
     while (idx < serverResponse.length()) {
-        int next = serverResponse.find('\n', idx);
+        unsigned short next = serverResponse.find('\n', idx);
         if (next == -1) next = serverResponse.length();
         splittedResponse.push_back(serverResponse.substr(idx, next - idx));
         if (idx == next) {
