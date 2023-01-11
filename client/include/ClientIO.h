@@ -22,6 +22,7 @@ class ClientIO{
     public:
         ConnectionHandler* connectionHandler;
         int nextStateReceipt;
+        mutex stateLock, eventsLock;
         ClientState state;
         // flag representing connection with server
 
@@ -33,16 +34,22 @@ class ClientIO{
         map<string, map<string, vector<Event>>> totalEvents;
     public:
         ClientIO();
+
+        // Rule of 5
         ~ClientIO();
         ClientIO(const ClientIO& other);
         ClientIO(const ClientIO&& other);
         ClientIO& operator=(const ClientIO& other);
         ClientIO& operator=(const ClientIO&& other);
+
+        // Getters & setters
         int generateNewSubId();
         int generateNewReceiptId();
         bool startConnection();
+        void setState(ClientState newState);
+        boolean compareState(ClientState otherState);
 
-        //thread 1 task - resolving and processing user command input
+        //Threads tasks
         void sendRequests();
         void processInput(string input);
         void sendStompFrame(Frame& frame);

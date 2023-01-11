@@ -6,8 +6,6 @@
 using namespace std;
 
 
-
-
 ClientIO::ClientIO(): connectionHandler(nullptr), nextStateReceipt(0), state(AwaitingLogin),
         username(""), subIdCounter(1), msgIdCounter(1){}
 
@@ -19,6 +17,7 @@ ClientIO::ClientIO(const ClientIO& other):
     msgIdCounter(other.msgIdCounter) {
         connectionHandler = new ConnectionHandler(other.connectionHandler->host_, other.connectionHandler->port_);
     }
+
 ClientIO::ClientIO(const ClientIO&& other):
     connectionHandler(other.connectionHandler),
     nextStateReceipt(other.nextStateReceipt),
@@ -57,6 +56,16 @@ int ClientIO::generateNewSubId() {return subIdCounter++; }
 
 int ClientIO::generateNewReceiptId() {return msgIdCounter++; }
 
+void ClientIO::setState(ClientState newState) {
+    lock_guard<mutex> sync(stateLock);
+    state = newState;
+    sync.~lock_guard();
+}
+
+boolean ClientIO::compareState(ClientState otherState) {
+    lock_guard<mutex> sync(stateLock);
+    return state == otherState;
+}
 
 bool ClientIO::startConnection() {
     while (state == ClientState::AwaitingLogin) {
@@ -114,7 +123,7 @@ bool ClientIO::startConnection() {
 }
 
 void ClientIO::sendRequests() {
-    while (state != ClientState::Disconnected && state != ClientState::AwaitingDisconnected) {
+    while (!compareState(ClientState::Disconnected) && !compareState(ClientState::AwaitingDisconnected)) {
         const short bufsize = 1024;
         char buf[bufsize];
         cin.getline(buf, bufsize);
@@ -169,15 +178,20 @@ void ClientIO::processInput(string input) {
         string game_name = names_and_events.team_a_name + "_" + names_and_events.team_b_name;
         string destination = "/"+game_name;
 
+        lock_guard<mutex> sync(eventsLock);
         if (totalEvents.find(destination) == totalEvents.end())
         { cout << "Unsent - You are not subscribed to " << destination << endl; return; }
-
+        sync.~lock_guard();
+        
         for (auto& event : names_and_events.events) {
             Frame eventFrame("SEND");
             eventFrame.addHeader("destination", destination);
             eventFrame.body_ = formatEventMessage(event, username);
             sendStompFrame(eventFrame);
+            
+            lock_guard<mutex> sync(eventsLock);
             totalEvents[destination][username].push_back(event);
+            sync.~lock_guard();
         }
     }
 
@@ -213,7 +227,11 @@ void ClientIO::processInput(string input) {
         string user = keywords.at(2);
         string path = keywords.at(3);
 
-        string output = createSummaryString(totalEvents, "/"+game_name, user);
+        string output;
+        lock_guard<mutex> sync(eventsLock);
+        output = createSummaryString(totalEvents, "/"+game_name, user);
+        sync.~lock_guard();
+        
         writeFile(output, path);
     }
 }
@@ -222,44 +240,45 @@ void ClientIO::sendStompFrame(Frame& frame) {
     string msg = frame.toStringRepr();
     if (!connectionHandler->sendLine(msg)) {
         cout << "Disconnected. Exiting...\n" << endl;
-        state = ClientState::Disconnected;
+        setState(ClientState::Disconnected);
     }
 }
 
 void ClientIO::processMessages() {
-    while (state != ClientState::Disconnected) {
-        
+    while (!compareState(ClientState::Disconnected)) {
         string responseString;
         if(!connectionHandler->getLine(responseString)){
             cout << "Disconnected. Exiting...\n" << endl;
-            state = ClientState::Disconnected;
+            setState(ClientState::Disconnected);
         }
 
         Frame response = parseFrame(responseString);
         string command = response.command_;
         
         if (command == "CONNECTED") {
-            if (state == ClientState::AwaitingConnected && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
-                state = ClientState::Connected;
+            if (compareState(ClientState::AwaitingConnected) && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
+                setState(ClientState::Connected);
             }
         }
         
         else if (command == "ERROR") {
             cout << "Received an error message from the server: " << response.getHeader("message")  << "\tFull error message: \n\n";
             cout << response.body_;
-            state = ClientState::Disconnected;
+            setState(ClientState::Disconnected);
         }
         
         else if (command == "RECEIPT") {
-            if (state == ClientState::AwaitingDisconnected && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
+            if (compareState(ClientState::AwaitingDisconnected) && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
                 cout << "Disconnected successfully " << endl;
-                state = ClientState::Disconnected;
+                setState(ClientState::Disconnected);
             }
         }
         else if (command == "MESSAGE") {
             pair<string, Event> receivedEvent = parseEventMessage(response.body_);
             if (receivedEvent.first != username){
+                lock_guard<mutex> sync(eventsLock);
                 totalEvents[response.getHeader("destination")][receivedEvent.first].push_back(receivedEvent.second);
+                sync.~lock_guard();
                 cout << "--Update received-- at "+response.getHeader("destination") << "\n\n";
                 cout << response.body_ << endl;
             }
