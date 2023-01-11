@@ -8,34 +8,94 @@ using namespace std;
 
 
 class ClientIO {
-	bool terminate;
-    int terminateReceipt;
+    
+    // TODO: mutex lock totalEvents, state
+    
+    ConnectionHandler connectionHandler;
 
-    bool connected;
+    int nextStateReceipt;
+    ClientState state;
+    
     string username;
     map<string, int> subscriptions;
     int subIdCounter, msgIdCounter;
-    
     map<string, map<string, vector<Event>>> totalEvents;
 
-    ClientIO(ConnectionHandler& ch): terminate(false), terminateReceipt(0), connected(false),
+    ClientIO(): terminate(false), stateReceipt(0), state(ClientState.AwaitingLogin),
             subIdCounter(1), msgIdCounter(1){}
     
     int generateNewSubId() {return subIdCounter++; }
     int generateNewReceiptId() {return msgIdCounter++; }
 
-	void sendRequests(ConnectionHandler& ch) {
-		while (!terminate) {
+    boolean startConnection() {
+        while (state == ClientState.awatingLogin) {
+            // read user's line
+            const short bufsize = 1024;
+            char buf[bufsize];
+            cin.getline(buf, bufsize);
+            string line(buf);
+
+            // split to keywords
+            vector<string> keywords(0);
+            int idx = 0;
+            while (idx < input.length()){
+                int next = input.find(' ', idx);
+                if (next == -1) next = input.length();
+                keywords.push_back(input.substr(idx, next - idx));
+                idx = ++next;
+            }
+
+            //try to connect & login
+            if (command == "login") {
+                Frame request("CONNECT");
+                if (keywords.size() != 4 || keywords.at(1).find(':') == -1) {
+                    cout << "Unsent - login format: login {host:port} {username} {password}" << endl;
+                }
+                else {
+                    username = keywords.at(2);
+
+                    int seperator = keywords.at(1).find(':');
+                    string host = keywords.at(1).substr(0,seperator);
+                    int port = keywords.at(1).substr(seperator + 1, 4);
+
+                    connectionHandler(host, port);
+                    if (!connectionHandler.connect()) {
+                        cerr << "Cannot connect to " << host << ":" << port << endl;
+                        return false;
+                    }
+                    cout << "Connected to the server. logging in..." << endl;
+
+                    nextStateReceipt = generateNewReceiptId();
+                    request.addHeader("host", keywords.at(1));
+                    request.addHeader("login", keywords.at(2));
+                    request.addHeader("passcode", keywords.at(3));
+                    request.addHeader("receipt-id", to_string(nextStateReceipt));
+                    sendStompFrame(request);
+                    state = ClientState.AwaitingConnected;
+                }
+            }
+
+            else {
+                cout << "Unsent - send a login command first" << endl; return;
+            }
+        }
+
+    }
+
+	void sendRequests() {
+		while (state != ClientState.Disconnected && state != ClientState.AwatingDisconnect) {
 			const short bufsize = 1024;
 			char buf[bufsize];
 			cin.getline(buf, bufsize);
 			string line(buf);
 			int len=line.length();
-            processInput(line, ch);
+            processInput(line);
 		}
 	}
 
-    void processInput(string input, ConnectionHandler& ch) {
+    void processInput(string input) {
+
+        // split input to keywords
         vector<string> keywords(0);
         int idx = 0;
         while (idx < input.length()){
@@ -44,21 +104,13 @@ class ClientIO {
             keywords.push_back(input.substr(idx, next - idx));
             idx = ++next;
         }
-        string& command = keywords.at(0);
+        string command = keywords.at(0);
 
         if (command == "login") {
-            Frame request("CONNECT");
-            if (keywords.size() != 4 || keywords.at(1).find(':') == -1) {
-                cout << "Unsent - login format: login {host:port} {username} {password}" << endl; return;
-            }
-            username = keywords.at(2);
-            request.addHeader("host", keywords.at(1));
-            request.addHeader("login", keywords.at(2));
-            request.addHeader("passcode", keywords.at(3));
-            sendStompFrame(request, ch);
+            cout << "You are already logged in" << endl; return;
         }
 
-        if (command == "join") {
+        else if (command == "join") {
             Frame request("SUBSCRIBE");
             if (keywords.size() != 2) {
                 cout << "Unsent - join format: join {game name} (game name = {team a}_{team_b})" << endl; return;
@@ -68,12 +120,12 @@ class ClientIO {
             request.addHeader("destination", destination);
             request.addHeader("id", to_string(subscriptions[destination]));
             request.addHeader("receipt-id", to_string(generateNewReceiptId()));
-            sendStompFrame(request, ch);
+            sendStompFrame(request);
         }
 
         else if (command == "report") {
             if (keywords.size() != 2) {
-                cout << "Unsent - send format: send {path.json})" << endl; return;
+                cout << "Unsent - report format: report {path.json})" << endl; return;
             }
 
             string eventsJson;
@@ -86,11 +138,15 @@ class ClientIO {
             
             string game_name = names_and_events.team_a_name + "_" + names_and_events.team_b_name;
             string destination = "/"+game_name;
+
+            if (totalEvents.find(destination) == totalEvents.end())
+            { cout << "Unsent - You are not subscribed to " << destination << endl; return; }
+
             for (auto& event : names_and_events.events) {
                 Frame eventFrame("SEND");
                 eventFrame.addHeader("destination", destination);
                 eventFrame.body_ = formatEventMessage(event, username);
-                sendStompFrame(eventFrame, ch);
+                sendStompFrame(eventFrame);
                 totalEvents[destination][username].push_back(event);
             }
         }
@@ -105,7 +161,7 @@ class ClientIO {
             subscriptions.erase(destination);
             request.addHeader("id", to_string(subId));
             request.addHeader("receipt-id", to_string(generateNewReceiptId()));
-            sendStompFrame(request, ch);
+            sendStompFrame(request);
         }
 
         else if (command == "logout") {
@@ -115,12 +171,12 @@ class ClientIO {
             }
             terminateReceipt = generateNewReceiptId();
             request.addHeader("receipt-id", to_string(terminateReceipt));
-            sendStompFrame(request, ch);
+            sendStompFrame(request);
         }
         
         else if (command == "summary") {
             if (keywords.size() != 4) {
-                cout << "summary format: summary {game_name} {user} {path.json}" << endl; return;
+                cout << "summary format: summary {game_name} {user} {path}" << endl; return;
             }
 
             string game_name = keywords.at(1);
@@ -132,39 +188,49 @@ class ClientIO {
         }
     }
 
-    void sendStompFrame(Frame& frame, ConnectionHandler& ch) {
+    void sendStompFrame(Frame& frame) {
         string msg = frame.toStringRepr();
-        if (!ch.sendLine(msg)) {
+        if (!connectionHandler.sendLine(msg)) {
             cout << "Disconnected. Exiting...\n" << endl;
             terminate = true;
         }
     }
 
-	void processMessages(ConnectionHandler& ch) {
-		while (!terminate) {
+	void processMessages() {
+		while (state != ClientState.Disconnected) {
+            
             string responseString;
-            if(!ch.getLine(responseString)){
-                //maybe there is a better solution
-                std::cout << "Disconnected. Exiting...\n" << std::endl;
-                terminate = true;
+            if(!connectionHandler.getLine(responseString)){
+                cout << "Disconnected. Exiting...\n" << endl;
+                state = ClientState.Disconnected;
             }
+
             Frame response = parseFrame(responseString);
             string command = response.command_;
-            if (command == "ERROR") {
-                terminate = true;
-                connected = false;
+            
+            if (command == "CONNECTED") {
+                if (state == ClientState.AwatingConnected && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
+                    state = ClientState.Connected;
+                }
             }
-            else if (command == "CONNECTED") { connected = true; }
+            
+            else if (command == "ERROR") {
+                cout << "Received an error message from the server: " << response.getHeader("message")  << "\tFull error message: \n\n";
+                cout << response.body_;
+                state = ClientState.Disconnected;
+            }
+            
             else if (command == "RECEIPT") {
-                if(stoi(response.headers_["reciept-id"]) == terminateReceipt)
-                    { terminate = true; connected = false; }
+                if (state == ClientState.AwatingDisconnected && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
+                    cout << "Disconnected successfully " << endl;
+                    state = ClientState.Disconnected;
+                }
             }
             else if (command == "MESSAGE") {
                 pair<string, Event> receivedEvent = parseEventMessage(response.body_);
-
                 if (receivedEvent.first != username){
-                    totalEvents[reponse.headers_.at("destination")][receivedEvent.first].push_back(receivedEvent.second);
-                    cout << "--Update received-- "+reponse.headers_.at("destination") << endl;
+                    totalEvents[reponse.getHeader("destination")][receivedEvent.first].push_back(receivedEvent.second);
+                    cout << "--Update received-- at "+reponse.getHeader("destination") << "\n\n";
                     cout << response.body_ << endl;
                 }
             }

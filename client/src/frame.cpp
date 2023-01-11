@@ -1,4 +1,3 @@
-
 #include "../include/frame.h"
 #include <vector>
 
@@ -13,6 +12,10 @@ Frame::Frame(string command) : command_(command), body_(""){}
 
 void Frame::addHeader(string key, string value) {
     headers_[key] = value;
+}
+
+void Frame::getHeader(string key) {
+    return headers_[key];
 }
 
 string Frame::toStringRepr() {

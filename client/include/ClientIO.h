@@ -33,3 +33,11 @@ class ClientIO{
         //thread 2 task - communicating with server
         void displayMessages(ConnectionHandler& ch);
 };
+
+enum ClientState {
+    AwaitingLogin,
+    AwaitingConnected,
+    Connected,
+    AwaitingDisconnection,
+    Disconnected
+}

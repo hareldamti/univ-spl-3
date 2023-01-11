@@ -20,6 +20,7 @@ class Frame
 
         
         void addHeader(string key, string value);
+        string getHeader(string key);
         string toStringRepr();
         Frame parseFrame(string serverResponse);
 };

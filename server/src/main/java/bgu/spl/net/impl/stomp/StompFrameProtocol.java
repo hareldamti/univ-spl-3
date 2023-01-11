@@ -1,8 +1,4 @@
 package bgu.spl.net.impl.stomp;
-import java.util.HashMap;
-import java.util.Map;
-
-import static java.util.Map.entry;  
 
 import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.srv.ConnectionHandler;
@@ -33,17 +29,12 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
             terminate = true;
         }
 
-        CommandRouter router = new CommandRouter(request, connections, connectionId);
+        Utils.log("--Received request--\n\nConnection Id:\t"+connectionId+"\nFrame:\n"+request.toStringRepr(), Utils.LogLevel.DEBUG);
+
+        Router router = new Router(request, connections, connectionId);
         try {
-            Frame response = null;
-            switch(request.command){
-                case CONNECT: response = router.Connect();
-                case DISCONNECT: response = router.Disconnect();
-                case SUBSCRIBE: response = router.Subscribe();
-                case UNSUBSCRIBE: response = router.Unsubscribe();
-                case SEND: response = router.Send();
-                default: break;
-            }
+            Frame response = router.routeRequest();
+
             if (response != null) {
                 if (response.terminate) {
                     connections.disconnect(connectionId);
@@ -58,9 +49,6 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
         }
     }
 	
-	/**
-	 * @return 
-     */
     @Override
     public boolean shouldTerminate() {
         return terminate;
@@ -70,11 +58,4 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
     public void close() {
         connections.kill(connectionId);
     }
-
-
-    
-
-
-
-
 }
