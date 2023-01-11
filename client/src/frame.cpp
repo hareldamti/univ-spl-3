@@ -41,12 +41,12 @@ Frame parseFrame(string serverResponse){
     }
 
     //creates a frame with the command from the server response
+    
     Frame parsedFrame = Frame(splittedResponse.at(0));
     int lineIdx = 1;
 
     //parses the headers from server to the frame's map
     while(lineIdx < splittedResponse.size() && !splittedResponse.at(lineIdx).empty()){
-        vector<string> headerPair;
         string header = splittedResponse.at(lineIdx);
         int seperator = header.find(':');
         parsedFrame.addHeader(header.substr(0, seperator), header.substr(seperator+1,header.length()));

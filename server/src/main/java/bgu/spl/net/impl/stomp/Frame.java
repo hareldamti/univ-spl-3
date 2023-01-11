@@ -108,7 +108,7 @@ public class Frame {
         CONNECTED,
         SUBSCRIBE,
         UNSUBSCRIBE,
-        RECIEPT,
+        RECEIPT,
         SEND,
         MESSAGE
     }

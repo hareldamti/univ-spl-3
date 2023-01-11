@@ -80,7 +80,7 @@ public class Router {
             "In order to gracefully disconnect, send a DISCONNECT frame along with\n"+
             "a receipt-id and ensure accepting a matching RECEIPT");
 
-        Frame receipt = new Frame(Frame.Command.RECIEPT);
+        Frame receipt = new Frame(Frame.Command.RECEIPT);
         receipt.terminate = true;
         receipt.headers.put(Frame.HeaderKey.receipt_id, request.headers.get(Frame.HeaderKey.receipt_id));
         return receipt;
@@ -112,7 +112,7 @@ public class Router {
 
         if (receipt_id == null) return null;
         
-        Frame receipt = new Frame(Frame.Command.RECIEPT);
+        Frame receipt = new Frame(Frame.Command.RECEIPT);
         receipt.headers.put(Frame.HeaderKey.receipt_id, receipt_id);
         return receipt;
     }
@@ -139,7 +139,7 @@ public class Router {
         
         if (receipt_id == null) return null;
         
-        Frame receipt = new Frame(Frame.Command.RECIEPT);
+        Frame receipt = new Frame(Frame.Command.RECEIPT);
         receipt.headers.put(Frame.HeaderKey.receipt_id, receipt_id);
         return receipt;
     }
@@ -184,7 +184,7 @@ public class Router {
 
         if (receipt_id == null) return null;
         
-        Frame receipt = new Frame(Frame.Command.RECIEPT);
+        Frame receipt = new Frame(Frame.Command.RECEIPT);
         receipt.headers.put(Frame.HeaderKey.receipt_id, receipt_id);
         return receipt;
     }

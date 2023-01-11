@@ -215,6 +215,7 @@ void ClientIO::processInput(string input) {
             cout << "Unsent - logout format: logout" << endl; return;
         }
         nextStateReceipt = generateNewReceiptId();
+        setState(ClientState::AwaitingDisconnected);
         request.addHeader("receipt-id", to_string(nextStateReceipt));
         sendStompFrame(request);
     }
@@ -252,38 +253,40 @@ void ClientIO::processMessages() {
             cout << "Disconnected. Exiting...\n" << endl;
             setState(ClientState::Disconnected);
         }
-
-        Frame response = parseFrame(responseString);
-        string command = response.command_;
-        
-        if (command == "CONNECTED") {
-            if (compareState(ClientState::AwaitingConnected) && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
-                setState(ClientState::Connected);
+        try {
+            Frame response = parseFrame(responseString);
+            string command = response.command_;
+            if (command == "CONNECTED") {
+                if (compareState(ClientState::AwaitingConnected) && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
+                    setState(ClientState::Connected);
+                }
             }
-        }
-        
-        else if (command == "ERROR") {
-            cout << "Received an error message from the server: " << response.getHeader("message")  << "\nFull error message: \n\n";
-            cout << response.body_;
-            setState(ClientState::Disconnected);
-        }
-        
-        else if (command == "RECEIPT") {
-            if (compareState(ClientState::AwaitingDisconnected) && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
-                cout << "Disconnected successfully " << endl;
+            
+            else if (command == "ERROR") {
+                cout << "Received an error message from the server: " << response.getHeader("message")  << "\nFull error message: \n\n";
+                cout << response.body_;
                 setState(ClientState::Disconnected);
             }
-        }
-        else if (command == "MESSAGE") {
-            pair<string, Event> receivedEvent = parseEventMessage(response.body_);
-            if (receivedEvent.first != username){
-                lock_guard<mutex> sync(eventsLock);
-                totalEvents[response.getHeader("destination")][receivedEvent.first].push_back(receivedEvent.second);
-                sync.~lock_guard();
-                cout << "--Update received-- at "+response.getHeader("destination") << "\n\n";
-                cout << response.body_ << endl;
+            
+            else if (command == "RECEIPT") {
+                if (compareState(ClientState::AwaitingDisconnected) && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
+                    cout << "Disconnected successfully " << endl;
+                    setState(ClientState::Disconnected);
+                }
+            }
+            
+            else if (command == "MESSAGE") {
+                pair<string, Event> receivedEvent = parseEventMessage(response.body_);
+                if (receivedEvent.first != username){
+                    lock_guard<mutex> sync(eventsLock);
+                    totalEvents[response.getHeader("destination")][receivedEvent.first].push_back(receivedEvent.second);
+                    sync.~lock_guard();
+                    cout << "--Update received-- at "+response.getHeader("destination") << "\n\n";
+                    cout << response.body_ << endl;
+                }
             }
         }
+        catch (exception& e) {cout << "Error in response processing: " << e.what() << endl; }
     }
 }
 

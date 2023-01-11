@@ -12,6 +12,7 @@ int main(int argc, char *argv[]) {
 
 	std::thread thread_object(&ClientIO::sendRequests, &(*clio));
     clio->processMessages();
+    thread_object.join();
     delete clio;
 	return 0;
 }
