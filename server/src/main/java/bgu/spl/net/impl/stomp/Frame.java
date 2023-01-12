@@ -32,10 +32,12 @@ public class Frame {
         result.terminate = false;
         String errorSummary = "", errorMessage = "";
         String[] lines = rawFrame.split("\n");
+
         if (lines.length == 0) {
             result.terminate = true;
             errorSummary = "Empty message";
         }
+        
         try {result.command = Command.valueOf(lines[0]); }
         catch (IllegalArgumentException notInEnum) {
             result.terminate = true;

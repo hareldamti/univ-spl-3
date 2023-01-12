@@ -258,6 +258,8 @@ void ClientIO::processMessages() {
         }
         try {
             Frame response = parseFrame(responseString);
+            //here
+
             string command = response.command_;
             if (command == "CONNECTED") {
                 if (compareState(ClientState::AwaitingConnected) && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
@@ -280,6 +282,7 @@ void ClientIO::processMessages() {
             
             else if (command == "MESSAGE") {
                 pair<string, Event> receivedEvent = parseEventMessage(response.body_);
+                cout << "\nparsed the event message\n" << endl;
                 if (receivedEvent.first != username){
                     lock_guard<mutex> sync(eventsLock);
                     totalEvents[response.getHeader("destination")][receivedEvent.first].push_back(receivedEvent.second);

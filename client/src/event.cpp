@@ -134,7 +134,7 @@ string formatEventMessage(Event& event, string username) {
     string result = "";
     result += "user: "+username+"\n";
     result += "team a: "+event.get_team_a_name()+"\n";
-    result += "team a: "+event.get_team_a_name()+"\n";
+    result += "team b: "+event.get_team_b_name()+"\n";
     result += "event name: "+event.get_name()+"\n";
     result += "time: "+to_string(event.get_time())+"\n";
     result += "general game updates:\n";
@@ -164,7 +164,7 @@ pair<string, Event> parseEventMessage(string message) {
         idx = next + 1;
     }
 
-    unsigned short i = 0;
+    unsigned short i = 1;
     string user = lines[i].substr(lines[i].find(':')+1,lines[i].length()); i++;
     string team_a_name = lines[i].substr(lines[i].find(':')+1,lines[i].length()); i++;
     string team_b_name = lines[i].substr(lines[i].find(':')+1,lines[i].length()); i++;
@@ -176,22 +176,28 @@ pair<string, Event> parseEventMessage(string message) {
     while (lines[i] != "team a updates:") {
         int seperator = lines[i].find(':');
         game_updates[lines[i].substr(1, seperator - 1)] = lines[i].substr(seperator + 2, lines[i].length());
+        i++;
     }
-    i += 2;
+    i ++;
     map<string, string> team_a_updates;
     while (lines[i] != "team b updates:") {
         int seperator = lines[i].find(':');
         team_a_updates[lines[i].substr(1, seperator - 1)] = lines[i].substr(seperator + 2, lines[i].length());
+        i++;
     }
-    i += 2;
+    i ++;
     map<string, string> team_b_updates;
     while (lines[i] != "description:") {
         int seperator = lines[i].find(':');
         team_b_updates[lines[i].substr(1, seperator - 1)] = lines[i].substr(seperator + 2, lines[i].length());
+        i++;
     }
-    i += 2;
+    i ++;
     string description = "";
-    while (i < lines.size()) description += lines[i] + ((i == lines.size()-1)?"":"\n");
+    while (i < lines.size()){ 
+        description += lines[i] + ((i == lines.size()-1)?"":"\n");
+        i++;
+        }
 
     return {user, Event(team_a_name, team_b_name, name, time,
              game_updates, team_a_updates, team_b_updates, description)};
