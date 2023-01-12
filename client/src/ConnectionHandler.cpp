@@ -8,8 +8,9 @@ using std::cerr;
 using std::endl;
 using std::string;
 
-ConnectionHandler::ConnectionHandler(string host, short port) : host_(host), port_(port), io_service_(),
-                                                                socket_(io_service_) {}
+ConnectionHandler::ConnectionHandler(string host, short port) : io_service_(),
+                                                                socket_(io_service_),
+																host_(host), port_(port) {}
 
 ConnectionHandler::~ConnectionHandler() {
 	close();
@@ -65,11 +66,23 @@ bool ConnectionHandler::sendBytes(const char bytes[], int bytesToWrite) {
 }
 
 bool ConnectionHandler::getLine(std::string &line) {
-	return getFrameAscii(line, '\n');
+	bool result = getFrameAscii(line, '\0');
+	if (DEBUG_MODE && result) {
+		cout << "\u001b[31m________________" << endl;
+		cout << line << endl;
+		cout << "________________\u001b[0m" << endl;
+	}
+	return result;
 }
 
 bool ConnectionHandler::sendLine(std::string &line) {
-	return sendFrameAscii(line, '\n');
+	bool result = sendFrameAscii(line, '\0');
+	if (DEBUG_MODE && result) {
+		cout << "\u001b[32m________________" << endl;
+		cout << line << endl;
+		cout << "________________\u001b[0m" << endl;
+	}
+	return result;
 }
 
 
@@ -82,7 +95,7 @@ bool ConnectionHandler::getFrameAscii(std::string &frame, char delimiter) {
 			if (!getBytes(&ch, 1)) {
 				return false;
 			}
-			if (ch != '\0')
+			if (ch != delimiter)
 				frame.append(1, ch);
 		} while (delimiter != ch);
 	} catch (std::exception &e) {

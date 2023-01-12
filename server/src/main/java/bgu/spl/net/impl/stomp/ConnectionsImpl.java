@@ -3,6 +3,7 @@ package bgu.spl.net.impl.stomp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.AbstractMap.SimpleEntry;
 import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
@@ -29,15 +30,15 @@ public class ConnectionsImpl implements Connections<String>{
      */
     public ConcurrentHashMap<String,Integer> userConnId;
 
-    private int connIdCounter, msgIdCounter;
+    private AtomicInteger connIdCounter, msgIdCounter;
 
     public ConnectionsImpl() {
         userPassword = new ConcurrentHashMap<>();
         channelSubscriptions = new ConcurrentHashMap<>();
         connIdHandler = new ConcurrentHashMap<>();
         userConnId = new ConcurrentHashMap<>();
-        connIdCounter = 0;
-        msgIdCounter = 0;
+        connIdCounter = new AtomicInteger(0);
+        msgIdCounter = new AtomicInteger(0);
     }
     
     /**
@@ -49,7 +50,10 @@ public class ConnectionsImpl implements Connections<String>{
     @Override
     public boolean send(int connectionId, String msg) {
         try {
-            if (connIdHandler.get(connectionId).send(msg)) return true;
+            if (connIdHandler.get(connectionId).send(msg)){
+                Utils.log("\n--Sent response--\nConnection Id:\t"+connectionId+"\nFrame:\n\n"+msg, Utils.LogLevel.DEBUG);
+                return true;
+            }
         }
         catch (NullPointerException e) {
             Utils.log("Connection id "+connectionId+" isn't assigned to a handler",
@@ -94,31 +98,40 @@ public class ConnectionsImpl implements Connections<String>{
     public void disconnect(int connectionId) {
 
         String username = Utils.getKeyByValue(userConnId, connectionId);
-
-        // remove user's subscriptions
-        for (String channel : channelSubscriptions.keySet()) {
-            List<SimpleEntry<String, Integer>> subs = channelSubscriptions.get(channel);
-            List<SimpleEntry<String, Integer>> userSubs = new ArrayList<SimpleEntry<String, Integer>>();
-            for (SimpleEntry<String, Integer> sub : subs) 
-                if (sub.getKey() == username) 
-                    userSubs.add(sub);
-            
-            for (SimpleEntry<String, Integer> userSub : userSubs)
-                subs.remove(userSub);
+        if (username != null) {
+            // remove user's subscriptions
+            for (String channel : channelSubscriptions.keySet()) {
+                List<SimpleEntry<String, Integer>> subs = channelSubscriptions.get(channel);
+                List<SimpleEntry<String, Integer>> userSubs = new ArrayList<SimpleEntry<String, Integer>>();
+                for (SimpleEntry<String, Integer> sub : subs) 
+                    if (sub.getKey() == username) 
+                        userSubs.add(sub);
+                
+                for (SimpleEntry<String, Integer> userSub : userSubs)
+                    subs.remove(userSub);
+            }
+            // remove user's current connection id
+            userConnId.remove(username);
         }
-
-        // remove user's current connection id
-        userConnId.remove(username);
     }
-
 
     @Override
     public int generateUniqueConnectionId(ConnectionHandler<String> conn) {
-        connIdHandler.put(msgIdCounter, conn);
-        return connIdCounter++;
+        int newId;
+        do {
+            newId = connIdCounter.get();
+        } while (!connIdCounter.compareAndSet(newId, newId+1));
+        connIdHandler.put(newId, conn);
+        return newId;
     }
 
-    public int generateMessageId() { return msgIdCounter++; }
+    public int generateMessageId() {
+        int newId;
+        do {
+            newId = msgIdCounter.get();
+        } while (!msgIdCounter.compareAndSet(newId, newId+1));
+        return newId;
+    }
 
     @Override
     public void kill(int connectionId) {

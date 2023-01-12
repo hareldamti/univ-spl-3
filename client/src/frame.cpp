@@ -1,10 +1,4 @@
-
 #include "../include/frame.h"
-#include <vector>
-//this is for the split function
-#include <boost/algorithm/string.hpp>
-#include <bits/stdc++.h>
-
 
 using namespace std;
 Frame::Frame(string command, std::map<string, string> headers, string body) :
@@ -18,55 +12,48 @@ void Frame::addHeader(string key, string value) {
     headers_[key] = value;
 }
 
+string Frame::getHeader(string key) {
+    return headers_[key];
+}
+
 string Frame::toStringRepr() {
     string str = command_+"\n";
     for (auto& header : headers_) {
         str += header.first + ":" + header.second + "\n";
     }
     str += "\n" + body_ + "\u0000";
+    return str;
 }
 
 Frame parseFrame(string serverResponse){
     vector<string> splittedResponse;
-    int idx = 0;
+    unsigned short idx = 0;
     while (idx < serverResponse.length()) {
-        int next = serverResponse.find('\n', idx);
+        unsigned short next = serverResponse.find('\n', idx);
         if (next == -1) next = serverResponse.length();
-        splittedResponse.push_back(serverResponse.substr(idx, next-idx));
+        splittedResponse.push_back(serverResponse.substr(idx, next - idx));
+        if (idx == next) {
+            if (next + 1 < serverResponse.length())
+                splittedResponse.push_back(serverResponse.substr(next + 1 , serverResponse.length()));
+            break;
+        }
         idx = next + 1;
     }
 
-    int lineIdx = 0;
-
     //creates a frame with the command from the server response
-    Frame parsedFrame = Frame(splittedResponse.at(lineIdx));
-    lineIdx++;
+    
+    Frame parsedFrame = Frame(splittedResponse.at(0));
+    int lineIdx = 1;
 
     //parses the headers from server to the frame's map
     while(lineIdx < splittedResponse.size() && !splittedResponse.at(lineIdx).empty()){
-        vector<string> headerPair;
-        
         string header = splittedResponse.at(lineIdx);
         int seperator = header.find(':');
         parsedFrame.addHeader(header.substr(0, seperator), header.substr(seperator+1,header.length()));
         lineIdx++;
     }
-
     lineIdx++;
     //if there is a message body, adds it to the frame
-    for (; lineIdx < splittedResponse.size(); lineIdx++)
-        parsedFrame.body_ += splittedResponse.at(lineIdx) + "\n";
-
+    if (lineIdx < splittedResponse.size()) parsedFrame.body_ = splittedResponse.at(lineIdx);
     return parsedFrame;
 }
-
-
-
-
-
-
-string parseResponse(string input)
-{
-    return string();
-}
-

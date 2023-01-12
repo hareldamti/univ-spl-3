@@ -12,7 +12,7 @@ public class Utils {
         OFF
     }
     public static final String DEFAULT_HOST = "stomp.cs.bgu.ac.il";
-    public static final LogLevel loggingLevel = LogLevel.INFO;
+    public static final LogLevel loggingLevel = LogLevel.OFF;
     
     
 
