@@ -165,11 +165,11 @@ pair<string, Event> parseEventMessage(string message) {
     }
 
     unsigned short i = 1;
-    string user = lines[i].substr(lines[i].find(':')+1,lines[i].length()); i++;
-    string team_a_name = lines[i].substr(lines[i].find(':')+1,lines[i].length()); i++;
-    string team_b_name = lines[i].substr(lines[i].find(':')+1,lines[i].length()); i++;
-    string name = lines[i].substr(lines[i].find(':')+1,lines[i].length()); i++;
-    int time = stoi(lines[i].substr(lines[i].find(':')+1,lines[i].length()));i += 2;
+    string user = lines[i].substr(lines[i].find(':')+2,lines[i].length()); i++;
+    string team_a_name = lines[i].substr(lines[i].find(':')+2,lines[i].length()); i++;
+    string team_b_name = lines[i].substr(lines[i].find(':')+2,lines[i].length()); i++;
+    string name = lines[i].substr(lines[i].find(':')+2,lines[i].length()); i++;
+    int time = stoi(lines[i].substr(lines[i].find(':')+2,lines[i].length()));i += 2;
     
     //general game updates
     map<string, string> game_updates;
@@ -211,18 +211,8 @@ string createSummaryString(map<string, map<string, vector<Event>>>& totalEvents,
         totalEvents[game_name].find(username) == totalEvents[game_name].end())
         return username + "'s updates for " + game_name + " not found";
     
-    // Select the desired event list and sort them by time & halftime
+    // Select the desired event list
     vector<Event>& events = totalEvents[game_name][username];
-
-    //sort doesn't work
-    sort(events.begin(), events.end(), [](Event const &a, Event const &b) { 
-        cout<< "made it 3" << endl;
-        return (b.get_game_updates().at("before halftime") == "true" && a.get_game_updates().at("before halftime") == "false") ||
-        (b.get_game_updates().at("before halftime") == a.get_game_updates().at("before halftime") &&
-        b.get_time() > a.get_time());
-    });
-
-        cout<<"made it 4" << endl;
 
     Event& last = events.at(events.size()-1);
     result += last.get_team_a_name() + " vs " + last.get_team_b_name() + "\n";
@@ -237,7 +227,7 @@ string createSummaryString(map<string, map<string, vector<Event>>>& totalEvents,
             team_b_updates[pair.first] = pair.second;
     }
 
-    result += "Game stats:\n";
+    result += "Game stats:\nGeneral updates:\n";
     for (auto& pair : game_updates) {
         result += "\t"+ pair.first +": "+ pair.second +"\n";
     }
@@ -251,7 +241,7 @@ string createSummaryString(map<string, map<string, vector<Event>>>& totalEvents,
     }
     result += "Game event reports:\n";
     for (Event& event : events) {
-        result += event.get_time() + " - " + event.get_name() + ":\n\n";
+        result += to_string(event.get_time()) + " - " + event.get_name() + ":\n\n";
         result += event.get_discription() + "\n\n\n";
     }
     return result;

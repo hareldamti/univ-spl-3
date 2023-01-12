@@ -67,7 +67,7 @@ bool ConnectionHandler::sendBytes(const char bytes[], int bytesToWrite) {
 
 bool ConnectionHandler::getLine(std::string &line) {
 	bool result = getFrameAscii(line, '\0');
-	if (result) {
+	if (DEBUG_MODE && result) {
 		cout << "\u001b[31m________________" << endl;
 		cout << line << endl;
 		cout << "________________\u001b[0m" << endl;
@@ -77,7 +77,7 @@ bool ConnectionHandler::getLine(std::string &line) {
 
 bool ConnectionHandler::sendLine(std::string &line) {
 	bool result = sendFrameAscii(line, '\0');
-	if (result) {
+	if (DEBUG_MODE && result) {
 		cout << "\u001b[32m________________" << endl;
 		cout << line << endl;
 		cout << "________________\u001b[0m" << endl;

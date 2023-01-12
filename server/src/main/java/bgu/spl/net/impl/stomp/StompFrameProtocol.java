@@ -23,7 +23,7 @@ public class StompFrameProtocol implements StompMessagingProtocol<String> {
     
     @Override
     public void process(String message) {
-        Utils.log("--Received request--\nConnection Id:\t"+connectionId+"\nFrame:\n\n"+message, Utils.LogLevel.DEBUG);
+        Utils.log("\n--Received request--\nConnection Id:\t"+connectionId+"\nFrame:\n\n"+message, Utils.LogLevel.DEBUG);
         Frame request = Frame.parseFrame(message);
         if (request.terminate) {
             connections.send(connectionId, request.toStringRepr());

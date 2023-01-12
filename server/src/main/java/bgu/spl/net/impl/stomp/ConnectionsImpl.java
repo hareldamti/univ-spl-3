@@ -3,6 +3,7 @@ package bgu.spl.net.impl.stomp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.AbstractMap.SimpleEntry;
 import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
@@ -29,15 +30,15 @@ public class ConnectionsImpl implements Connections<String>{
      */
     public ConcurrentHashMap<String,Integer> userConnId;
 
-    private int connIdCounter, msgIdCounter;
+    private AtomicInteger connIdCounter, msgIdCounter;
 
     public ConnectionsImpl() {
         userPassword = new ConcurrentHashMap<>();
         channelSubscriptions = new ConcurrentHashMap<>();
         connIdHandler = new ConcurrentHashMap<>();
         userConnId = new ConcurrentHashMap<>();
-        connIdCounter = 0;
-        msgIdCounter = 0;
+        connIdCounter = new AtomicInteger(0);
+        msgIdCounter = new AtomicInteger(0);
     }
     
     /**
@@ -114,14 +115,23 @@ public class ConnectionsImpl implements Connections<String>{
         }
     }
 
-
     @Override
     public int generateUniqueConnectionId(ConnectionHandler<String> conn) {
-        connIdHandler.put(connIdCounter, conn);
-        return connIdCounter++;
+        int newId;
+        do {
+            newId = connIdCounter.get();
+        } while (!connIdCounter.compareAndSet(newId, newId+1));
+        connIdHandler.put(newId, conn);
+        return newId;
     }
 
-    public int generateMessageId() { return msgIdCounter++; }
+    public int generateMessageId() {
+        int newId;
+        do {
+            newId = msgIdCounter.get();
+        } while (!msgIdCounter.compareAndSet(newId, newId+1));
+        return newId;
+    }
 
     @Override
     public void kill(int connectionId) {

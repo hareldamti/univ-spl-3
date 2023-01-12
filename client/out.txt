@@ -1,6 +1,0 @@
-login 127.0.0.1:2023 harel 1
-login 127.0.0.1:2023 asif 2
-login 127.0.0.1:2023 coco 3
-login 127.0.0.1:2023 shimi 4
-join Germany_Japan
-report data/events1.json

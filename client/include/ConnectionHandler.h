@@ -6,9 +6,10 @@
 
 using boost::asio::ip::tcp;
 
+const bool DEBUG_MODE = false;
+
 class ConnectionHandler {
 private:
-	
 	boost::asio::io_service io_service_;   // Provides core I/O functionality
 	tcp::socket socket_;
 

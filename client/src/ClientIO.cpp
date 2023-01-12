@@ -134,7 +134,6 @@ void ClientIO::sendRequests() {
 }
 
 void ClientIO::processInput(string input) {
-
     // split input to keywords
     vector<string> keywords(0);
     unsigned short idx = 0;
@@ -197,10 +196,13 @@ void ClientIO::processInput(string input) {
     }
 
     else if (command == "exit") {
-        Frame request("UNSUBSCRIBE");
         if (keywords.size() != 2) {
             cout << "Unsent - exit format: exit {game_name} (game name = {team a}_{team_b})\n" << endl; return;
         }
+        if (subscriptions.find("/"+keywords.at(1)) == subscriptions.end()) {
+            cout << "Unsent - You're not subscribed to "+keywords.at(1)+"\n" << endl; return;
+        }
+        Frame request("UNSUBSCRIBE");
         string destination = "/"+keywords.at(1);
         int subId = subscriptions[destination];
         subscriptions.erase(destination);
@@ -231,12 +233,9 @@ void ClientIO::processInput(string input) {
         string game_name = keywords.at(1);
         string user = keywords.at(2);
         string path = keywords.at(3);
-        cout<<"made it 1" << endl;
         string output;
         lock_guard<mutex> sync(eventsLock);
-        cout<<"made it 2" << endl;
         output = createSummaryString(totalEvents, "/"+game_name, user);
-        cout<<"made it 5" << endl;
         sync.~lock_guard();
         
         writeFile(output, path);
@@ -260,7 +259,6 @@ void ClientIO::processMessages() {
         }
         try {
             Frame response = parseFrame(responseString);
-            //here
 
             string command = response.command_;
             if (command == "CONNECTED") {
@@ -284,11 +282,10 @@ void ClientIO::processMessages() {
             
             else if (command == "MESSAGE") {
                 pair<string, Event> receivedEvent = parseEventMessage(response.body_);
-                cout << "\nparsed the event message\n" << endl;
                 if (receivedEvent.first != username){
                     lock_guard<mutex> sync(eventsLock);
                     //receivedEvent.first start with a space character
-                    totalEvents[response.getHeader("destination")][receivedEvent.first.substr(1,(receivedEvent.first).length())].push_back(receivedEvent.second);
+                    totalEvents[response.getHeader("destination")][receivedEvent.first].push_back(receivedEvent.second);
                     sync.~lock_guard();
                     cout << "--Update received-- at "+response.getHeader("destination") << "\n\n";
                     cout << response.body_ << endl;
