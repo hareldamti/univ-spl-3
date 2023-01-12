@@ -213,11 +213,17 @@ string createSummaryString(map<string, map<string, vector<Event>>>& totalEvents,
     
     // Select the desired event list and sort them by time & halftime
     vector<Event>& events = totalEvents[game_name][username];
+
+    //sort doesn't work
     sort(events.begin(), events.end(), [](Event const &a, Event const &b) { 
+        cout<< "made it 3" << endl;
         return (b.get_game_updates().at("before halftime") == "true" && a.get_game_updates().at("before halftime") == "false") ||
         (b.get_game_updates().at("before halftime") == a.get_game_updates().at("before halftime") &&
         b.get_time() > a.get_time());
     });
+
+        cout<<"made it 4" << endl;
+
     Event& last = events.at(events.size()-1);
     result += last.get_team_a_name() + " vs " + last.get_team_b_name() + "\n";
     
