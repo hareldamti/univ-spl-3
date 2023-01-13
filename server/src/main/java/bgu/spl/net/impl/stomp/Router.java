@@ -47,6 +47,12 @@ public class Router {
             connections.userPassword.put(reqUsername, reqPasscode);
         }
 
+        // check password
+        else if (realPasscode != reqPasscode) {
+            return Frame.createErrorFrame(request, "Password incorrect",
+            "Please login again with the correct password, or create a new user");
+        }
+
         // check if the client is already connected
         if (Utils.getKeyByValue(connections.userConnId, connectionId) != null)
         {
@@ -77,7 +83,7 @@ public class Router {
         // check receipt header
         if (request.headers.get(Frame.HeaderKey.receipt_id) == null)
             return Frame.createErrorFrame(request, "Missing header",
-            "In order to gracefully disconnect, send a DISCONNECT frame along with\n"+
+            "In order to gracefully disconnect next time, send a DISCONNECT frame along with\n"+
             "a receipt-id and ensure accepting a matching RECEIPT");
 
         Frame receipt = new Frame(Frame.Command.RECEIPT);
@@ -87,7 +93,6 @@ public class Router {
     };
 
     public Frame Subscribe() {
-
         // check if the client's user is logged in
         if (Utils.getKeyByValue(connections.userConnId, connectionId) == null)
         {
@@ -145,7 +150,6 @@ public class Router {
     }
     
     public Frame Send() {
-
         // check if the client's user is logged in
         if (Utils.getKeyByValue(connections.userConnId, connectionId) == null)
         {
