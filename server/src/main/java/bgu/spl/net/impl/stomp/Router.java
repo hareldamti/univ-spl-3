@@ -48,7 +48,7 @@ public class Router {
         }
 
         // check password
-        else if (realPasscode != reqPasscode) {
+        else if (!realPasscode.equals(reqPasscode)) {
             return Frame.createErrorFrame(request, "Password incorrect",
             "Please login again with the correct password, or create a new user");
         }
