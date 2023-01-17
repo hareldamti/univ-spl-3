@@ -6,13 +6,15 @@
 #include <thread>
 
 int main(int argc, char *argv[]) {
-    ClientIO* clio = new ClientIO();
- 
-    if (!clio->startConnection()) return 1;
+    while(1){
+        ClientIO* clio = new ClientIO();
+    
+        if (!clio->startConnection()){delete clio; return 1;}
 
-	std::thread thread_object(&ClientIO::sendRequests, &(*clio));
-    clio->processMessages();
-    thread_object.join();
-    delete clio;
+        std::thread thread_object(&ClientIO::sendRequests, &(*clio));
+        clio->processMessages();
+        thread_object.join();
+        delete clio;
+    }
 	return 0;
 }
