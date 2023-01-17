@@ -74,7 +74,7 @@ bool ClientIO::startConnection() {
         char buf[bufsize];
         cin.getline(buf, bufsize);
         string input(buf);
-
+        if (input.length() == 0) continue;
         // split to keywords
         vector<string> keywords(0);
         unsigned short idx = 0;
@@ -104,8 +104,6 @@ bool ClientIO::startConnection() {
                     cerr << "Cannot connect to " << host << ":" << port << endl;
                     return false;
                 }
-                cout << "Connected to the server. logging in..." << endl;
-
                 nextStateReceipt = generateNewReceiptId();
                 request.addHeader("accept-version", "1.2");
                 request.addHeader("host", host);
@@ -129,7 +127,7 @@ void ClientIO::sendRequests() {
         char buf[bufsize];
         cin.getline(buf, bufsize);
         string line(buf);
-        processInput(line);
+        if (line.length() > 0) processInput(line);
     }
 }
 
@@ -269,11 +267,15 @@ void ClientIO::processMessages() {
             
             else if (command == "ERROR") {
                 cout << "Received an error message from the server: " << response.getHeader("message")  << "\nFull error message: \n\n";
-                cout << response.body_;
+                cout << response.body_ << endl;
                 setState(ClientState::Disconnected);
             }
             
             else if (command == "RECEIPT") {
+                if (compareState(ClientState::AwaitingConnected) && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
+                    cout << "Disconnected successfully " << endl;
+                    setState(ClientState::Connected);
+                }
                 if (compareState(ClientState::AwaitingDisconnected) && stoi(response.getHeader("receipt-id")) == nextStateReceipt) {
                     cout << "Disconnected successfully " << endl;
                     setState(ClientState::Disconnected);
